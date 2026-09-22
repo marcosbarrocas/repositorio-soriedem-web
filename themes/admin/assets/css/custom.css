@@ -1,0 +1,20 @@
+.status-info .active .square, .status-info .inactive .square, .status-info .mlctive .square {
+    width: 40px;
+    height: 40px;
+    margin-right: 5px;
+}
+
+.table-bordered .active {
+    background-color: #05a01f;
+    color: white;
+}
+
+.table-bordered .inactive {
+    background-color: #ff382b;
+    color: white;
+}
+
+.table-bordered .mlctive {
+    background-color: #ffa22b;
+    color: white;
+}
