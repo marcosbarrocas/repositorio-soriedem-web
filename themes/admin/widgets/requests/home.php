@@ -45,7 +45,15 @@
                                         <?php foreach ($requests as $request) : ?>
                                             <tr>
                                                 <th scope="row"><?= $request->request_number; ?></th>
-                                                <td><?= $request->client; ?></td>
+                                                <td>
+                                                    <?php $cli = $request->getClient(); ?>
+                                                    <?php $fantasia = $cli && !empty($cli->contact_name) ? $cli->contact_name : $request->client; ?>
+                                                    <?php $razao = $cli && !empty($cli->corporate_name) ? $cli->corporate_name : $request->client; ?>
+                                                    <strong><?= $fantasia; ?></strong>
+                                                    <?php if ($razao && $razao !== $fantasia) : ?>
+                                                        <br><small class="text-muted"><?= $razao; ?></small>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td><?= $request->seller; ?></td>
                                                 <td><?= date_fmt($request->created_at, 'd/m/Y'); ?></td>
                                                 <td><a href="http://maps.google.com/maps?q=<?= $request->latitude; ?>,<?= $request->longitude; ?>" target="_blank">Mapa</td>
