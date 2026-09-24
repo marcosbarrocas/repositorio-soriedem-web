@@ -8,32 +8,22 @@ try {
     if ($postjson) {
         $data = filter_var_array($postjson, FILTER_SANITIZE_STRIPPED);
 
-        $today = date('Y-m-d H:i:s');
-        $startOfDay = date('Y-m-d 00:00:00');
-
-        $startOfWeek = date('Y-m-d', strtotime('last Sunday'));
-        $startOfMonth = date('Y-m-01');
-
-        $query = $PDO->prepare("SELECT request_number, COUNT(*) as count FROM requests WHERE id_seller = :id_seller AND created_at >= :startOfDay AND created_at <= :today GROUP BY request_number");
+        // Comparacoes de data feitas no MySQL para evitar divergencia de fuso
+        // entre o PHP (America/Sao_Paulo) e o created_at gravado pelo banco.
+        $query = $PDO->prepare("SELECT request_number, COUNT(*) as count FROM requests WHERE id_seller = :id_seller AND created_at >= CURDATE() AND created_at <= NOW() GROUP BY request_number");
         $query->bindParam(':id_seller', $data['id_seller'], PDO::PARAM_INT);
-        $query->bindParam(':startOfDay', $startOfDay, PDO::PARAM_STR);
-        $query->bindParam(':today', $today, PDO::PARAM_STR);
         $query->execute();
 
         $todayRequests = $query->fetchAll(PDO::FETCH_ASSOC);
 
-        $query = $PDO->prepare("SELECT request_number, COUNT(*) as count FROM requests WHERE id_seller = :id_seller AND created_at >= :startOfWeek AND created_at <= :today GROUP BY request_number");
+        $query = $PDO->prepare("SELECT request_number, COUNT(*) as count FROM requests WHERE id_seller = :id_seller AND created_at >= DATE_SUB(CURDATE(), INTERVAL DAYOFWEEK(CURDATE()) - 1 DAY) AND created_at <= NOW() GROUP BY request_number");
         $query->bindParam(':id_seller', $data['id_seller'], PDO::PARAM_INT);
-        $query->bindParam(':startOfWeek', $startOfWeek, PDO::PARAM_STR);
-        $query->bindParam(':today', $today, PDO::PARAM_STR);
         $query->execute();
 
         $weekRequests = $query->fetchAll(PDO::FETCH_ASSOC);
 
-        $query = $PDO->prepare("SELECT request_number, COUNT(*) as count FROM requests WHERE id_seller = :id_seller AND created_at >= :startOfMonth AND created_at <= :today GROUP BY request_number");
+        $query = $PDO->prepare("SELECT request_number, COUNT(*) as count FROM requests WHERE id_seller = :id_seller AND created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND created_at <= NOW() GROUP BY request_number");
         $query->bindParam(':id_seller', $data['id_seller'], PDO::PARAM_INT);
-        $query->bindParam(':startOfMonth', $startOfMonth, PDO::PARAM_STR);
-        $query->bindParam(':today', $today, PDO::PARAM_STR);
         $query->execute();
 
         $monthRequests = $query->fetchAll(PDO::FETCH_ASSOC);

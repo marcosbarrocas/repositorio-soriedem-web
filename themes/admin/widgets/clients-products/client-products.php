@@ -21,9 +21,9 @@
                         <div class="card-body">
                             <form class="ajax_off" action="<?= url('/admin/clients-products/client-products'); ?>" method="post">
                                 <input type="hidden" name="action" value="create">
-                                <div class="form-row">
-                                    <div class="form-group col-md-4">
-                                        <label>Clientes</label>
+                                <div class="form-row" data-url="<?= url(); ?>">
+                                    <div class="form-group col-md-6">
+                                        <label>Cliente</label>
                                         <select name="id_client" class="form-control">
                                             <option value="">Selecionar</option>
                                             <?php if ($clients) : ?>
@@ -33,27 +33,9 @@
                                             <?php endif; ?>
                                         </select>
                                     </div>
-                                    <div class="form-group col-md-4">
-                                        <label>Categorias</label>
-                                        <select name="id_category" class="form-control" data-url="<?= url(); ?>">
-                                            <option value="">Selecionar</option>
-                                            <?php if ($categories) : ?>
-                                                <?php foreach ($categories as $category) : ?>
-                                                    <option value="<?= $category->id; ?>"><?= $category->title; ?></option>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-4">
-                                        <label>Sub Categorias</label>
-                                        <select name="id_subcategory" class="form-control">
-                                            <option value="">Selecionar</option>
-                                            <?php if ($subCategories) : ?>
-                                                <?php foreach ($subCategories as $subCategory) : ?>
-                                                    <option value="<?= $subCategory->id; ?>"><?= $subCategory->title; ?></option>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </select>
+                                    <div class="form-group col-md-6">
+                                        <label>Buscar produto (nome ou código)</label>
+                                        <input type="text" name="search_product" class="form-control" placeholder="Ex.: SACO DE LIXO ou PRD00026">
                                     </div>
                                 </div>
                                 <div>
@@ -115,65 +97,67 @@
 <!--/App-Content-->
 <?php $v->start('scripts'); ?>
 <script>
-    let selectCategory = document.querySelector('[name=id_category]'),
-        selectSubCategory = document.querySelector('[name=id_subcategory]'),
-        selectClient = document.querySelector('[name=id_client]')
-    getProducts = document.querySelector('.getProducts'),
+    const selectClient = document.querySelector('[name=id_client]'),
+        searchInput = document.querySelector('[name=search_product]'),
+        getProducts = document.querySelector('.getProducts'),
         divProducts = document.querySelector('.products'),
-        url = selectCategory.getAttribute('data-url')
+        url = document.querySelector('.form-row').getAttribute('data-url')
 
-    selectCategory.addEventListener('change', () => {
-        axios.post(`${url}/admin/categories/selectCategory/${selectCategory.value}`).then(function(response) {
-            if (response) {
-                selectSubCategory.innerHTML = ''
-                for (let i = 0; i < response.data.length; i++) {
-                    selectSubCategory.innerHTML += `<option value="${response.data[i].id}">${response.data[i].title}</option>`
-                }
-            }
-        })
-    })
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, s => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[s]))
+    }
 
     getProducts.addEventListener('click', () => {
+        const term = searchInput.value.trim()
+        if (!selectClient.value) {
+            alert('Selecione um cliente primeiro.')
+            return
+        }
+        if (term.length < 2) {
+            alert('Digite ao menos 2 caracteres para buscar.')
+            return
+        }
+
         divProducts.innerHTML = ''
         getProducts.disabled = true
 
-        axios.post(`${url}/admin/products/get-products-client/${selectClient.value}`).then((data) => {
-            let clientProducts = []
-            if (data.data != false) {
-                for (let i = 0; i < data.data.length; i++) {
-                    clientProducts.push(data.data[i].id_product)
+        // 1) produtos ja associados ao cliente (para excluir da busca)
+        axios.post(`${url}/admin/products/get-products-client/${selectClient.value}`).then((res) => {
+            const already = (res.data && res.data !== false)
+                ? res.data.map(cp => Number(cp.id_product))
+                : []
+
+            // 2) busca produtos por nome/codigo
+            const form = new FormData()
+            form.append('q', term)
+            axios.post(`${url}/admin/products/search`, form).then((res2) => {
+                const list = res2.data || []
+                let count = 0
+                for (const p of list) {
+                    if (already.indexOf(Number(p.id)) !== -1) continue
+                    const img = p.photo
+                        ? `<img src="${p.photo.startsWith('http') ? p.photo : url + '/storage/' + p.photo}" alt="Foto" width="50" height="50">`
+                        : `<img src="${url}/themes/admin/assets/images/noimage.jpg" alt="Foto" width="50" height="50">`
+                    divProducts.innerHTML += `
+                        <div class="mb-2 w-100">
+                            <div class="form-check d-flex align-items-center" style="gap:10px">
+                                <input class="form-check-input" type="checkbox" name="products[]" value="${p.id}">
+                                ${img}
+                                <label class="form-check-label flex-grow-1">${escapeHtml(p.code)} — ${escapeHtml(p.title)}</label>
+                                <input type="text" class="mask-money form-control" style="max-width:140px" name="prices[${p.id}]" value="${p.value ?? ''}" placeholder="Preço">
+                            </div>
+                        </div>`
+                    count++
                 }
-            }
-
-
-            axios.post(`${url}/admin/products/get-products/${selectSubCategory.value}`).then((data) => {
-                if (data) {
-                    for (let j = 0; j < data.data.length; j++) {
-                        if (clientProducts.indexOf(data.data[j].id) == -1) {
-                            let img = null
-                            if (data.data[j].photo) {
-                                img = `<img src="${url}/storage/${data.data[j].photo}" alt="Foto" width="50" height="20">`
-                            } else {
-                                img = `<img src="${url}/themes/admin/assets/images/noimage.jpg" alt="Foto" width="50" height="50">`
-                            }
-
-                            divProducts.innerHTML += `
-                                <div class="mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="products[]" value="${data.data[j].id}">
-                                        ${img}
-                                        <label class="form-check-label">${data.data[j].title}</label>
-                                        <input type="text" class="mask-money" name="prices[]">
-                                    </div>
-                                </div>
-                                `
-                        }
-                    }
-                    $(".mask-money").mask('000.000.000.000.000,00', {reverse: true, placeholder: "0,00"})
-                    getProducts.disabled = false
+                if (!count) {
+                    divProducts.innerHTML = '<p class="text-muted">Nenhum produto novo encontrado para esse termo.</p>'
                 }
-            })
-        })
+                $(".mask-money").mask('000.000.000.000.000,00', {reverse: true, placeholder: "0,00"})
+                getProducts.disabled = false
+            }).catch(() => { getProducts.disabled = false })
+        }).catch(() => { getProducts.disabled = false })
     })
 </script>
 <?php $v->end('scripts'); ?>

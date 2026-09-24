@@ -348,4 +348,124 @@ class Products extends Admin
             echo json_encode($productsArr);
         }
     }
+
+    /**
+     * Busca produtos por nome ou codigo (independente de categoria).
+     * Usado na tela de cesta para associar produtos vindos da Omie.
+     * POST /admin/products/search  { q: "texto", only_with_photo: "1"? }
+     * @param array|null $data
+     */
+    public function searchProducts(?array $data): void
+    {
+        $data = filter_var_array((array)$data, FILTER_SANITIZE_STRIPPED);
+        $term = trim($data["q"] ?? "");
+        $onlyWithPhoto = !empty($data["only_with_photo"]);
+
+        if (mb_strlen($term) < 2) {
+            echo json_encode([]);
+            return;
+        }
+
+        $terms = "(title LIKE CONCAT('%', :q, '%') OR code LIKE CONCAT('%', :q, '%'))";
+        if ($onlyWithPhoto) {
+            $terms .= " AND photo IS NOT NULL AND photo <> ''";
+        }
+
+        $products = (new Product())
+            ->find($terms, "q={$term}")
+            ->order("title ASC")
+            ->limit(50)
+            ->fetch(true);
+
+        $out = [];
+        if ($products) {
+            foreach ($products as $p) {
+                $out[] = $p->data();
+            }
+        }
+        echo json_encode($out);
+    }
+
+    /**
+     * Tela de vinculo manual de fotos: lista produtos Omie (com omie_codigo) que
+     * ainda estao sem foto, para o admin vincular a foto de um produto antigo.
+     * GET /admin/products/photos[/{search}/{page}]
+     * @param array|null $data
+     */
+    public function photos(?array $data): void
+    {
+        if (!empty($data["s"])) {
+            $s = str_search($data["s"]);
+            echo json_encode(["redirect" => url("/admin/products/photos/{$s}/1")]);
+            return;
+        }
+
+        $search = null;
+        $terms = "omie_codigo IS NOT NULL AND (photo IS NULL OR photo = '')";
+        $params = null;
+        if (!empty($data["search"]) && str_search($data["search"]) != "all") {
+            $search = str_search($data["search"]);
+            $terms .= " AND (title LIKE CONCAT('%', :s, '%') OR code LIKE CONCAT('%', :s, '%'))";
+            $params = "s={$search}";
+        }
+
+        $pending = (new Product())->find($terms, $params);
+
+        $all = ($search ?? "all");
+        $pager = new \Source\Support\Pager(url("/admin/products/photos/{$all}/"));
+        $pager->pager($pending->count(), 20, (!empty($data["page"]) ? $data["page"] : 1));
+
+        $head = $this->seo->render(
+            CONF_SITE_NAME . " | Fotos pendentes",
+            CONF_SITE_DESC,
+            url("/admin"),
+            url("/admin/assets/images/image.jpg"),
+            false
+        );
+
+        echo $this->view->render("widgets/products/photos", [
+            "app" => "products/photos",
+            "head" => $head,
+            "search" => $search,
+            "products" => $pending->limit($pager->limit())->offset($pager->offset())->fetch(true),
+            "paginator" => $pager->render(),
+        ]);
+    }
+
+    /**
+     * Vincula a foto de um produto de origem a um produto Omie de destino.
+     * POST /admin/products/link-photo { id: <destino>, source_id: <origem> }
+     * @param array|null $data
+     */
+    public function linkPhoto(?array $data): void
+    {
+        $data = filter_var_array((array)$data, FILTER_SANITIZE_STRIPPED);
+        $destId = filter_var($data["id"] ?? null, FILTER_VALIDATE_INT);
+        $srcId = filter_var($data["source_id"] ?? null, FILTER_VALIDATE_INT);
+
+        if (!$destId || !$srcId) {
+            echo json_encode(["error" => "Parametros invalidos."]);
+            return;
+        }
+
+        $dest = (new Product())->findById($destId);
+        $src = (new Product())->findById($srcId);
+
+        if (!$dest || !$src) {
+            echo json_encode(["error" => "Produto nao encontrado."]);
+            return;
+        }
+        if (empty($src->photo)) {
+            echo json_encode(["error" => "O produto de origem nao tem foto."]);
+            return;
+        }
+
+        $dest->photo = $src->photo;
+        $dest->file_bt = $src->file_bt;
+        $dest->file_fispq = $src->file_fispq;
+        $dest->save();
+
+        $this->message->success("Foto vinculada com sucesso...")->flash();
+        echo json_encode(["reload" => true]);
+    }
 }

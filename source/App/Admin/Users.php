@@ -26,6 +26,9 @@ class Users extends Admin
      */
     public function home(?array $data): void
     {
+        //apenas Administrador (level 5) gerencia usuários do painel
+        $this->requireLevel(5);
+
         //search redirect
         if (!empty($data["s"])) {
             $s = str_search($data["s"]);
@@ -72,6 +75,9 @@ class Users extends Admin
      */
     public function user(?array $data): void
     {
+        //apenas Administrador (level 5) gerencia usuários do painel
+        $this->requireLevel(5);
+
         //create
         if (!empty($data["action"]) && $data["action"] == "create") {
             $data = filter_var_array($data, FILTER_SANITIZE_STRIPPED);
@@ -82,7 +88,8 @@ class Users extends Admin
             $userCreate->phone = preg_replace("/[^0-9]/", "", $data["phone"]);
             $userCreate->email = $data["email"];
             $userCreate->password = $data["password"];
-            $userCreate->level = $data["level"];
+            //só aceita Administrador (5) ou Operador (3); padrão Administrador
+            $userCreate->level = (in_array((int)($data["level"] ?? 5), [3, 5]) ? (int)$data["level"] : 5);
             $userCreate->genre = $data["genre"];
             $userCreate->datebirth = date_fmt_back($data["datebirth"]);
             $userCreate->document = preg_replace("/[^0-9]/", "", $data["document"]);
@@ -131,7 +138,8 @@ class Users extends Admin
             $userUpdate->phone = preg_replace("/[^0-9]/", "", $data["phone"]);
             $userUpdate->email = $data["email"];
             $userUpdate->password = (!empty($data["password"]) ? $data["password"] : $userUpdate->password);
-            $userUpdate->level = $data["level"];
+            //só aceita Administrador (5) ou Operador (3); padrão Administrador
+            $userUpdate->level = (in_array((int)($data["level"] ?? 5), [3, 5]) ? (int)$data["level"] : 5);
             $userUpdate->genre = $data["genre"];
             $userUpdate->datebirth = date_fmt_back($data["datebirth"]);
             $userUpdate->document = preg_replace("/[^0-9]/", "", $data["document"]);

@@ -63,9 +63,8 @@
                                 <div class="form-group col-md-6">
                                     <label>Perfil de Acesso</label>
                                     <select name="level" class="form-control">
-                                        <option value="">Selecione o perfil</option>
-                                        <option value="1" class="">Usuário</option>
-                                        <option value="5" class="">Admin</option>
+                                        <option value="5">Administrador</option>
+                                        <option value="3">Operador</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-6">
@@ -164,8 +163,8 @@
                                             return ($level == $value ? "selected" : "");
                                         };
                                         ?>
-                                        <option <?= $select(1); ?> value="1">Usuário</option>
-                                        <option <?= $select(5); ?> value="5">Admin</option>
+                                        <option <?= $select(5); ?> value="5">Administrador</option>
+                                        <option <?= $select(3); ?> value="3">Operador</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-6">

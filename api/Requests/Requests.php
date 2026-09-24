@@ -12,7 +12,11 @@ if ($postjson || $get) {
         $data = filter_var_array($get, FILTER_SANITIZE_STRIPPED);
     }
 
-    $query = $PDO->prepare("SELECT * FROM requests WHERE id_seller = :id_seller GROUP BY request_number ORDER BY id DESC");
+    $query = $PDO->prepare("SELECT request_number, client, id_client, status, MAX(created_at) AS created_at
+        FROM requests
+        WHERE id_seller = :id_seller
+        GROUP BY request_number, client, id_client, status
+        ORDER BY MAX(id) DESC");
     $query->bindParam(':id_seller', $data['id_seller'], PDO::PARAM_INT);
     $query->execute();
 

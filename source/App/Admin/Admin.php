@@ -30,4 +30,19 @@ class Admin extends Controller
             redirect("/admin/login");
         }
     }
+
+    /**
+     * Garante que o usuário logado possua o nível mínimo informado.
+     * Perfis do painel: Administrador (5) tem acesso total e
+     * Operador (3) tem acesso a tudo, exceto a gestão de usuários.
+     *
+     * @param int $min nível mínimo exigido para acessar o recurso
+     */
+    protected function requireLevel(int $min): void
+    {
+        if (!$this->user || $this->user->level < $min) {
+            $this->message->error("Você não tem permissão para acessar essa área")->flash();
+            redirect("/admin/dash");
+        }
+    }
 }

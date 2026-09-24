@@ -1,0 +1,15 @@
+# Configuracao/segredos por ambiente (nunca versionar)
+source/Boot/config.local.php
+.env
+
+# Dev local
+router-local.php
+
+# Logs e temporarios
+error_log
+.ftpquota
+*.log
+
+# Deploy
+deploy/
+*.zip

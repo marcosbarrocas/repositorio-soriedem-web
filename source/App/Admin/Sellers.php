@@ -2,7 +2,9 @@
 
 namespace Source\App\Admin;
 
+use Source\Core\Connect;
 use Source\Models\Seller;
+use Source\Support\Omie;
 use Source\Support\Pager;
 
 /**
@@ -62,6 +64,161 @@ class Sellers extends Admin
             "sellers" => $sellers->limit($pager->limit())->offset($pager->offset())->fetch(true),
             "paginator" => $pager->render()
         ]);
+    }
+
+    /**
+     * Página de gerenciamento de LOGIN dos vendedores.
+     *
+     * A Omie é a fonte dos vendedores, mas não tem autenticação de vendedor —
+     * o login (email/senha) vive na tabela `sellers`, mapeado por `omie_codigo`.
+     * Aqui listamos os vendedores da Omie e mostramos quem já tem login, com
+     * ação para criar/gerenciar o acesso ao app.
+     *
+     * @param array|null $data
+     */
+    public function omie(?array $data): void
+    {
+        $pdo = Connect::getInstance();
+        $erro = null;
+
+        // Ação: atualizar o cache local a partir da Omie (sob demanda, evita
+        // bater no rate-limit "REDUNDANT" da Omie a cada carregamento).
+        if (!empty($data["action"]) && $data["action"] === "sync") {
+            $sync = new \Source\Support\OmieSync();
+            if (!$sync->syncVendedores()) {
+                $this->message->error("Erro ao consultar a Omie: " . $sync->error())->flash();
+            } else {
+                $this->message->success("Vendedores atualizados a partir da Omie.")->flash();
+            }
+            redirect("/admin/sellers/omie");
+            return;
+        }
+
+        // Lê os vendedores do cache local. Se estiver vazio (primeira vez),
+        // busca da Omie uma vez e popula o cache.
+        $vendedores = $pdo->query("SELECT codigo, nome, email, inativo FROM omie_vendedores ORDER BY nome")
+            ->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (empty($vendedores)) {
+            $sync = new \Source\Support\OmieSync();
+            if ($sync->syncVendedores()) {
+                $vendedores = $pdo->query("SELECT codigo, nome, email, inativo FROM omie_vendedores ORDER BY nome")
+                    ->fetchAll(\PDO::FETCH_ASSOC);
+            } else {
+                $erro = $sync->error();
+            }
+        }
+
+        // sellers locais indexados por omie_codigo e por email (p/ status de login)
+        $sellers = (new Seller())->find()->fetch(true) ?: [];
+        $byCodigo = [];
+        $byEmail = [];
+        foreach ($sellers as $s) {
+            if (!empty($s->omie_codigo)) {
+                $byCodigo[(string)$s->omie_codigo] = $s;
+            }
+            if (!empty($s->email)) {
+                $byEmail[mb_strtolower($s->email)] = $s;
+            }
+        }
+
+        // monta a lista combinada (vendedor Omie + status do login local)
+        $linhas = [];
+        foreach ($vendedores as $v) {
+            $codigo = (string)($v["codigo"] ?? "");
+            $email = trim((string)($v["email"] ?? ""));
+            $seller = $byCodigo[$codigo]
+                ?? ($email !== "" ? ($byEmail[mb_strtolower($email)] ?? null) : null);
+
+            $linhas[] = [
+                "codigo" => $codigo,
+                "nome" => (string)($v["nome"] ?? ""),
+                "email" => $email,
+                "inativo" => (bool)($v["inativo"] ?? 0),
+                "seller" => $seller, // objeto Seller ou null
+            ];
+        }
+
+        $head = $this->seo->render(
+            CONF_SITE_NAME . " | Vendedores (Omie) e Logins",
+            CONF_SITE_DESC,
+            url("/admin"),
+            url("/admin/assets/images/image.jpg"),
+            false
+        );
+
+        echo $this->view->render("widgets/sellers/omie", [
+            "app" => "sellers/omie",
+            "head" => $head,
+            "linhas" => $linhas,
+            "erro" => $erro,
+        ]);
+    }
+
+    /**
+     * Cria (ou vincula) o login de acesso ao app para um vendedor da Omie.
+     * POST { omie_codigo, nome, email, password }
+     * @param array|null $data
+     */
+    public function createLogin(?array $data): void
+    {
+        $data = filter_var_array((array)$data, FILTER_SANITIZE_STRIPPED);
+
+        $codigo = filter_var($data["omie_codigo"] ?? null, FILTER_VALIDATE_INT);
+        $nome = trim((string)($data["nome"] ?? ""));
+        $email = trim((string)($data["email"] ?? ""));
+        $password = (string)($data["password"] ?? "");
+
+        if (!$codigo || $email === "") {
+            echo json_encode(["message" => $this->message->warning("Código Omie e email são obrigatórios.")->render()]);
+            return;
+        }
+        if (!is_email($email)) {
+            echo json_encode(["message" => $this->message->warning("O e-mail informado não é válido.")->render()]);
+            return;
+        }
+        if (mb_strlen($password) < CONF_PASSWD_MIN_LEN) {
+            $min = CONF_PASSWD_MIN_LEN;
+            echo json_encode(["message" => $this->message->warning("A senha deve ter ao menos {$min} caracteres.")->render()]);
+            return;
+        }
+
+        // separa nome em primeiro/sobrenome
+        $partes = preg_split('/\s+/', $nome, 2);
+        $firstName = $partes[0] ?? $nome;
+        $lastName = $partes[1] ?? "";
+
+        $pdo = Connect::getInstance();
+
+        // já existe seller com esse email? então vincula/atualiza (evita duplicar)
+        $stmt = $pdo->prepare("SELECT id FROM sellers WHERE email = :email LIMIT 1");
+        $stmt->execute([":email" => $email]);
+        $existingId = $stmt->fetchColumn();
+
+        $hash = passwd($password);
+
+        if ($existingId) {
+            $upd = $pdo->prepare(
+                "UPDATE sellers SET first_name = :fn, last_name = :ln, password = :pw, omie_codigo = :oc WHERE id = :id"
+            );
+            $upd->execute([
+                ":fn" => $firstName, ":ln" => $lastName, ":pw" => $hash,
+                ":oc" => $codigo, ":id" => (int)$existingId,
+            ]);
+            $this->message->success("Login atualizado com sucesso para {$nome}.")->flash();
+        } else {
+            $ins = $pdo->prepare(
+                "INSERT INTO sellers (first_name, last_name, phone, document, email, password, omie_codigo)
+                 VALUES (:fn, :ln, '', '', :email, :pw, :oc)"
+            );
+            $ins->execute([
+                ":fn" => $firstName, ":ln" => $lastName, ":email" => $email,
+                ":pw" => $hash, ":oc" => $codigo,
+            ]);
+            $this->message->success("Login criado com sucesso para {$nome}.")->flash();
+        }
+
+        echo json_encode(["reload" => true]);
     }
 
     /**

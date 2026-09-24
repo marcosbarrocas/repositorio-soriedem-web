@@ -78,36 +78,45 @@ class ClientsProducts extends Admin
         //create
         if (!empty($data["action"]) && $data["action"] == "create") {
             $data = filter_var_array($data, FILTER_SANITIZE_STRIPPED);
-            $products = $data['products'];
-            $prices = null;
 
-            for ($i=0; $i < count($data['prices']); $i++) { 
-                if ($data['prices'][$i] > 0) {
-                    $prices[] = number_format($data['prices'][$i], 2, '.', ',');
-                }
+            $idClient = filter_var($data["id_client"] ?? null, FILTER_VALIDATE_INT);
+            $products = $data["products"] ?? [];
+            $prices = $data["prices"] ?? []; // preco chaveado por id do produto: prices[<id>]
+
+            if (!$idClient || empty($products) || !is_array($products)) {
+                $this->message->warning("Selecione um cliente e ao menos um produto")->flash();
+                echo json_encode(["reload" => true]);
+                return;
             }
 
-            $clientProductsCreate = new ClientProducts();
+            $pdo = Connect::getInstance();
+            $insert = $pdo->prepare(
+                "INSERT INTO clients_products (id_client, id_product, price) VALUES (:id_client, :id_product, :price)"
+            );
+            // evita associacao duplicada do mesmo produto para o mesmo cliente
+            $exists = $pdo->prepare(
+                "SELECT id FROM clients_products WHERE id_client = :id_client AND id_product = :id_product LIMIT 1"
+            );
 
-            $test = count($products) + 1;
-            for ($i = 0; $i < $test; $i++) {
-                if ($i < count($products)) {
-                    $stmt = Connect::getInstance()->prepare("INSERT INTO clients_products (id_client, id_product, price) VALUES (:id_client, :id_product, :price)");
-                    $stmt->bindParam(':id_client', $data['id_client']);
-                    $stmt->bindParam(':id_product', $products[$i]);
-                    $stmt->bindParam(':price', $prices[$i]);
-                    $stmt->execute();
-                } else {
-                    $this->message->success("Associação cadastrada com sucesso...")->flash();
-                    redirect('/admin/clients-products/home');
+            $saved = 0;
+            foreach ($products as $idProduct) {
+                $idProduct = filter_var($idProduct, FILTER_VALIDATE_INT);
+                if (!$idProduct) {
+                    continue;
                 }
+
+                $exists->execute([":id_client" => $idClient, ":id_product" => $idProduct]);
+                if ($exists->fetch()) {
+                    continue; // ja associado
+                }
+
+                $price = $this->normalizePrice($prices[$idProduct] ?? "0");
+                $insert->execute([":id_client" => $idClient, ":id_product" => $idProduct, ":price" => $price]);
+                $saved++;
             }
 
-
-            $this->message->success("Associação cadastrada com sucesso...")->flash();
-            $json["redirect"] = url("/admin/clients-products/client-products/{$clientProductsCreate->id}");
-
-            echo json_encode($json);
+            $this->message->success("{$saved} produto(s) associado(s) com sucesso...")->flash();
+            echo json_encode(["redirect" => url("/admin/clients-products/list-products/{$idClient}")]);
             return;
         }
 
@@ -176,6 +185,24 @@ class ClientsProducts extends Admin
             "categories" => (new Category())->find()->fetch(true),
             "subCategories" => (new SubCategory())->find()->fetch(true)
         ]);
+    }
+
+    /**
+     * Converte um preco vindo da mascara BR ("1.234,56") para decimal ("1234.56").
+     * @param string $value
+     * @return string
+     */
+    private function normalizePrice(string $value): string
+    {
+        $value = trim($value);
+        if ($value === "") {
+            return "0.00";
+        }
+        // remove separador de milhar (.) e troca virgula decimal por ponto
+        $value = str_replace(".", "", $value);
+        $value = str_replace(",", ".", $value);
+        $number = (float) $value;
+        return number_format($number, 2, ".", "");
     }
 
     /**

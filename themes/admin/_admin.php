@@ -117,6 +117,9 @@
                         <a class="side-menu__item" href="<?= url('/admin/requests/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Pedidos</span></a>
                     </li>
                     <li>
+                        <a class="side-menu__item" href="<?= url('/admin/sellers/omie'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Vendedores</span></a>
+                    </li>
+                    <li>
                         <a class="side-menu__item" href="<?= url('/admin/products/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Produtos</span></a>
                     </li>
                     <li>
@@ -126,12 +129,17 @@
                         <a class="side-menu__item" href="<?= url('/admin/sub-categories/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Sub Categorias</span></a>
                     </li>
 
-                    <!-- <li>
+                    <li>
                         <a class="side-menu__item" href="<?= url('/admin/clients-products/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Associar Produtos</span></a>
-                    </li> -->
+                    </li>
+                    <li>
+                        <a class="side-menu__item" href="<?= url('/admin/products/photos'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Fotos pendentes</span></a>
+                    </li>
+                    <?php if (\Source\Models\Auth::user() && \Source\Models\Auth::user()->level >= 5) : ?>
                     <li>
                         <a class="side-menu__item" href="<?= url('/admin/users/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Usuários</span></a>
                     </li>
+                    <?php endif; ?>
                 </ul>
             </aside>
             <!--/Sidebar menu-->

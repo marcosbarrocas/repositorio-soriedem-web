@@ -11,7 +11,9 @@ use CoffeeCode\Router\Router;
 use Source\Core\Session;
 
 $session = new Session();
-$route = new Router(url(), ":");
+// RouterLocal estende o Router do CoffeeCode e, sob o servidor embutido (php -S),
+// deriva a rota do REQUEST_URI (sob Apache o .htaccess injeta ?route=).
+$route = new Source\Core\RouterLocal(url(), ":");
 $route->namespace("Source\App");
 
 /**
@@ -51,6 +53,9 @@ $route->post("/users/user/{user_id}", "Users:user");
 $route->get("/sellers/home", "Sellers:home");
 $route->post("/sellers/home", "Sellers:home");
 $route->get("/sellers/home/{search}/{page}", "Sellers:home");
+$route->get("/sellers/omie", "Sellers:omie");
+$route->post("/sellers/omie", "Sellers:omie");
+$route->post("/sellers/create-login", "Sellers:createLogin");
 $route->get("/sellers/seller", "Sellers:seller");
 $route->post("/sellers/seller", "Sellers:seller");
 $route->get("/sellers/seller/{seller_id}", "Sellers:seller");
@@ -103,6 +108,11 @@ $route->get("/products/product/{product_id}", "Products:product");
 $route->post("/products/product/{product_id}", "Products:product");
 $route->post("/products/get-products/{subcategory_id}", "Products:getProducts");
 $route->post("/products/get-products-client/{client_id}", "Products:getProductsClient");
+$route->post("/products/search", "Products:searchProducts");
+$route->get("/products/photos", "Products:photos");
+$route->post("/products/photos", "Products:photos");
+$route->get("/products/photos/{search}/{page}", "Products:photos");
+$route->post("/products/link-photo", "Products:linkPhoto");
 
 //requests
 $route->get("/requests/home", "Requests:home");
