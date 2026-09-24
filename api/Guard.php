@@ -22,9 +22,23 @@ function require_seller(PDO $PDO): array
         exit;
     }
 
-    $stmt = $PDO->prepare("SELECT id, first_name, last_name, email, omie_codigo FROM sellers WHERE api_token = :t LIMIT 1");
+    // Sessao nova (access_token com validade). Junta com sellers para os dados.
+    $stmt = $PDO->prepare(
+        "SELECT s.id, s.first_name, s.last_name, s.email, s.omie_codigo
+         FROM seller_sessions ss
+         INNER JOIN sellers s ON s.id = ss.id_seller
+         WHERE ss.access_token = :t AND ss.access_expires > NOW()
+         LIMIT 1"
+    );
     $stmt->execute([':t' => $token]);
     $seller = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Fallback para o token legado (sellers.api_token) durante a transicao.
+    if (!$seller) {
+        $legacy = $PDO->prepare("SELECT id, first_name, last_name, email, omie_codigo FROM sellers WHERE api_token = :t LIMIT 1");
+        $legacy->execute([':t' => $token]);
+        $seller = $legacy->fetch(PDO::FETCH_ASSOC);
+    }
 
     if (!$seller) {
         http_response_code(401);

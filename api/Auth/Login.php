@@ -31,11 +31,23 @@ if ($query->rowCount() > 0) {
 
     if ($verified) {
         $token = bin2hex(random_bytes(24));
+        $refresh = bin2hex(random_bytes(24));
+
+        // Sessao com access (7 dias) + refresh (30 dias). Cada login cria uma
+        // sessao propria, entao varios dispositivos convivem sem se derrubar.
+        $sess = $PDO->prepare(
+            "INSERT INTO seller_sessions (id_seller, access_token, refresh_token, access_expires, refresh_expires)
+             VALUES (:id, :a, :r, DATE_ADD(NOW(), INTERVAL 7 DAY), DATE_ADD(NOW(), INTERVAL 30 DAY))"
+        );
+        $sess->execute([':id' => $seller['id'], ':a' => $token, ':r' => $refresh]);
+
+        // Compat com o token legado (Guard aceita ambos).
         $upd = $PDO->prepare("UPDATE sellers SET api_token = :t WHERE id = :id");
         $upd->execute([':t' => $token, ':id' => $seller['id']]);
 
         unset($seller['password'], $seller['api_token']);
         $json['token'] = $token;
+        $json['refresh_token'] = $refresh;
         $json['seller'] = $seller;
     }
 }
