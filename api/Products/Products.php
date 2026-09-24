@@ -2,7 +2,8 @@
 require_once('../Connect.php');
 
 $postjson = json_decode(file_get_contents("php://input"), true);
-$query = $PDO->query("SELECT * FROM products");
+// Somente produtos da Omie (com codigo Omie); os antigos ficam de fora da lista.
+$query = $PDO->query("SELECT * FROM products WHERE omie_codigo IS NOT NULL AND omie_codigo <> '' ORDER BY title");
 
 $data = null;
 if ($query->rowCount() > 0) {
