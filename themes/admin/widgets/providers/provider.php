@@ -10,6 +10,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/providers/home'); ?>">Fornecedores</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Criar Fornecedor</li>
             </ol>
+            <?= admin_back('/admin/providers/home'); ?>
         </div>
 
         <div class="row">
@@ -50,6 +51,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/providers/home'); ?>">Fornecedores</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Editar Fornecedor</li>
             </ol>
+            <?= admin_back('/admin/providers/home'); ?>
         </div>
 
         <div class="row">

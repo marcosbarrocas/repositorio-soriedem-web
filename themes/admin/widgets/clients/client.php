@@ -10,6 +10,7 @@
                     <li class="breadcrumb-item"><a href="<?= url('/admin/clients/home'); ?>">Clientes</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Criar Cliente</li>
                 </ol>
+                <?= admin_back('/admin/clients/home'); ?>
             </div>
 
             <div class="row">
@@ -103,6 +104,7 @@
                     <li class="breadcrumb-item"><a href="<?= url('/admin/clients/home'); ?>">Clientes</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Editar Cliente</li>
                 </ol>
+                <?= admin_back('/admin/clients/home'); ?>
             </div>
 
             <div class="row">

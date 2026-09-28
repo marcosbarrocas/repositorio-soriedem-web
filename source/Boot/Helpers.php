@@ -142,6 +142,52 @@ function str_price(?string $price): string
 }
 
 /**
+ * Converte um valor vindo da Omie para o formato monetário brasileiro.
+ *
+ * A Omie envia o preço com ponto decimal e pode trazer mais de duas casas,
+ * por exemplo "295.035". A máscara do campo de valor só entende duas casas
+ * decimais e, se receber o ponto, junta todos os dígitos e desloca a vírgula
+ * (295.035 vira 2.950,35). Esta função lê o ponto como separador decimal,
+ * corta o excedente sem arredondar (295.035 vira 295,03) e devolve milhar
+ * com ponto e decimais com vírgula.
+ *
+ * Também aceita valor que já esteja em formato brasileiro ("1.234,56" ou
+ * "295,03") e inteiro sem separador ("2"), sempre devolvendo duas casas.
+ *
+ * @param string|null $value Preço cru. Pode ser o valor_unitario da Omie ("295.035", "75.95"), um valor já mascarado ("295,03") ou vazio.
+ * @return string Valor em reais no formato 0.000,00. String vazia quando $value vem vazio ou não é numérico.
+ */
+function money_br(?string $value): string
+{
+    $value = trim((string) $value);
+    if ($value === "") {
+        return "";
+    }
+
+    $negative = str_starts_with($value, "-");
+    $value = ltrim($value, "-");
+
+    if (str_contains($value, ",") && str_contains($value, ".")) {
+        $value = str_replace(".", "", $value);
+        $value = str_replace(",", ".", $value);
+    } elseif (str_contains($value, ",")) {
+        $value = str_replace(",", ".", $value);
+    }
+
+    if (!is_numeric($value)) {
+        return "";
+    }
+
+    $parts = explode(".", $value, 2);
+    $int = ltrim($parts[0], "0");
+    $int = ($int === "") ? "0" : $int;
+    $dec = substr(str_pad($parts[1] ?? "", 2, "0"), 0, 2);
+    $formatted = preg_replace('/\B(?=(\d{3})+(?!\d))/', '.', $int) . "," . $dec;
+
+    return ($negative ? "-" : "") . $formatted;
+}
+
+/**
  * @param string|null $search
  * @return string
  */
@@ -188,6 +234,20 @@ function url(string $path = null): string
     }
 
     return CONF_URL_BASE;
+}
+
+/**
+ * Monta o botão Voltar usado no cabeçalho das telas secundárias do painel.
+ *
+ * Telas de detalhe, criação e edição usam este botão ao lado do breadcrumb
+ * para voltar à listagem de origem, no mesmo lugar em todas essas páginas.
+ *
+ * @param string $path Caminho interno da listagem, no formato aceito por url(). Exemplo: "/admin/products/home".
+ * @return string HTML do link Voltar, pronto para imprimir no cabeçalho.
+ */
+function admin_back(string $path): string
+{
+    return '<a href="' . url($path) . '" class="btn btn-light ml-3">Voltar</a>';
 }
 
 /**

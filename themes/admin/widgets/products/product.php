@@ -10,6 +10,7 @@
                     <li class="breadcrumb-item"><a href="<?= url('/admin/products/home'); ?>">Produtos</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Criar Produto</li>
                 </ol>
+                <?= admin_back('/admin/products/home'); ?>
             </div>
 
             <div class="row">
@@ -19,7 +20,7 @@
                             <h3 class="card-title">Criar Produto</h3>
                         </div>
                         <div class="card-body">
-                            <form action="<?= url('/admin/products/product'); ?>" method="post">
+                            <form action="<?= url('/admin/products/product'); ?>" method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="action" value="create">
                                 <div class="form-row">
                                     <div class="form-group col-md-4">
@@ -85,6 +86,7 @@
                     <li class="breadcrumb-item"><a href="<?= url('/admin/products/home'); ?>">Produtos</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Editar Produto</li>
                 </ol>
+                <?= admin_back('/admin/products/home'); ?>
             </div>
 
             <div class="row">
@@ -94,7 +96,7 @@
                             <h3 class="card-title">Editar Produto</h3>
                         </div>
                         <div class="card-body">
-                            <form action="<?= url('/admin/products/product/' . $product->id); ?>" method="post">
+                            <form action="<?= url('/admin/products/product/' . $product->id); ?>" method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="action" value="update">
                                 <div class="form-row">
                                     <div class="form-group col-md-4">
@@ -107,7 +109,7 @@
                                     </div>
                                     <div class="form-group col-md-2">
                                         <label>Valor</label>
-                                        <input type="text" class="form-control mask-money" name="value" value="<?= $product->value; ?>" placeholder="Digite seu valor">
+                                        <input type="text" class="form-control mask-money" name="value" value="<?= money_br($product->value); ?>" placeholder="Digite seu valor">
                                     </div>
                                     <div class="form-group col-md-2">
                                         <label>Estoque</label>
@@ -119,7 +121,7 @@
                                             <option value="">Selecionar Categoria</option>
                                             <?php if ($categories) : ?>
                                                 <?php foreach ($categories as $category) : ?>
-                                                    <option value="<?= $category->id; ?>"><?= $category->title; ?></option>
+                                                    <option value="<?= $category->id; ?>" <?= ((string) $product->id_category === (string) $category->id ? "selected" : ""); ?>><?= $category->title; ?></option>
                                                 <?php endforeach; ?>
                                             <?php endif; ?>
                                         </select>
@@ -128,22 +130,27 @@
                                     <div class="form-group col-md-4">
                                         <label>Foto</label>
                                         <input type="file" class="form-control" name="photo">
+                                        <?php if (!empty($product->photo)) : ?>
+                                            <a href="<?= url("/storage/{$product->photo}"); ?>" target="_blank" rel="noopener" class="d-inline-block mt-2">
+                                                <img src="<?= url("/storage/{$product->photo}"); ?>" alt="Foto de <?= $product->title; ?>" style="width: 140px; height: 140px; object-fit: contain; background: #f7f7f7; border: 1px solid #e6e6e6; border-radius: 6px; padding: 6px;">
+                                            </a>
+                                            <small class="d-block mt-1"><a href="<?= url("/storage/{$product->photo}"); ?>" target="_blank" rel="noopener">Ver foto</a></small>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="form-group col-md-4">
                                         <label>B.T</label>
                                         <input type="file" class="form-control" name="file_bt">
+                                        <?php if (!empty($product->file_bt)) : ?>
+                                            <small class="d-block mt-2 text-success">Arquivo enviado. <a href="<?= url("/storage/{$product->file_bt}"); ?>" target="_blank" rel="noopener">Abrir B.T.</a></small>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="form-group col-md-4">
-                                        <label> F.I.S.P.Q</label>
+                                        <label>F.I.S.P.Q</label>
                                         <input type="file" class="form-control" name="file_fispq">
+                                        <?php if (!empty($product->file_fispq)) : ?>
+                                            <small class="d-block mt-2 text-success">Arquivo enviado. <a href="<?= url("/storage/{$product->file_fispq}"); ?>" target="_blank" rel="noopener">Abrir F.I.S.P.Q.</a></small>
+                                        <?php endif; ?>
                                     </div>
-
-
-
-
-                                </div>
-                                <div>
-                                    <img style="height: 150px; width: 150px;" src="<?= url("/storage/{$product->photo}"); ?>" />
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group col-md-12">
@@ -164,18 +171,20 @@
 <?php $v->start('scripts'); ?>
 <script>
     let selectCategory = document.querySelector('[name=id_category]'),
-        selectSubCategory = document.querySelector('[name=id_subcategory]'),
-        url = selectCategory.getAttribute('data-url')
+        selectSubCategory = document.querySelector('[name=id_subcategory]')
 
-    selectCategory.addEventListener('change', () => {
-        axios.post(`${url}/admin/categories/selectCategory/${selectCategory.value}`).then(function(response) {
-            if (response) {
-                selectSubCategory.innerHTML = ''
-                for (let i = 0; i < response.data.length; i++) {
-                    selectSubCategory.innerHTML += `<option value="${response.data[i].id}">${response.data[i].title}</option>`
+    if (selectCategory && selectSubCategory) {
+        let url = selectCategory.getAttribute('data-url')
+        selectCategory.addEventListener('change', () => {
+            axios.post(`${url}/admin/categories/selectCategory/${selectCategory.value}`).then(function(response) {
+                if (response) {
+                    selectSubCategory.innerHTML = ''
+                    for (let i = 0; i < response.data.length; i++) {
+                        selectSubCategory.innerHTML += `<option value="${response.data[i].id}">${response.data[i].title}</option>`
+                    }
                 }
-            }
+            })
         })
-    })
+    }
 </script>
 <?php $v->end('scripts'); ?>

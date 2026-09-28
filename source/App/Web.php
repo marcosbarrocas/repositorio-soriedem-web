@@ -19,19 +19,15 @@ class Web extends Controller
     }
 
     /**
-     * SITE HOME
+     * Abre a entrada do sistema na tela de login do admin.
+     *
+     * A rota publica "/" nao tem area de visitante. Este metodo redireciona
+     * para /admin/login, que e a tela inicial de acesso.
+     *
+     * @return void
      */
     public function home(): void
     {
-        $head = $this->seo->render(
-            CONF_SITE_NAME . " - " . CONF_SITE_TITLE,
-            CONF_SITE_DESC,
-            url(),
-            theme("")
-        );
-
-        echo $this->view->render("home", [
-            "head" => $head,
-        ]);
+        redirect("/admin/login");
     }
 }

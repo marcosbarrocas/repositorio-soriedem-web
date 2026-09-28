@@ -5,7 +5,9 @@
  * GET  api/Omie/Cesta.php?id_client=123
  * POST { "id_client": 123 }
  *
- * Retorna a lista de produtos da cesta com o preco especifico do cliente.
+ * Retorna a lista de produtos da cesta com o valor especifico do cliente
+ * (clients_products.price) e a flag required (1 exige quantidade maior
+ * que zero no pedido quando o estoque do cliente estiver zerado).
  * Cada item traz `omie_codigo` (codigo_produto numerico) para o IncluirPedido.
  */
 require_once('../Connect.php');
@@ -30,7 +32,8 @@ try {
                    products.title,
                    products.photo,
                    products.stock,
-                   clients_products.price
+                   clients_products.price,
+                   clients_products.required
             FROM clients_products
             INNER JOIN products ON products.id = clients_products.id_product
             WHERE clients_products.id_client = :id_client

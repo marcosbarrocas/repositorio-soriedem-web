@@ -26,17 +26,21 @@ class Request extends Model
         return (new Request())->find('request_number = :rn', "rn={$this->request_number}")->fetch(true);
     }
 
-    public function getProduct()
+    /**
+     * Retorna o produto vinculado a este item do pedido.
+     *
+     * O campo id_product da tabela requests guarda o id da tabela products.
+     * O código comercial fica em products.code e deve ser lido no objeto retornado.
+     *
+     * @return Product|null Produto encontrado, ou null quando o id não existe em products.
+     */
+    public function getProduct(): ?Product
     {
-        $product = (new Product())->find('code = :code', "code=00{$this->id_product}")->fetch();
-
-        if ($product) {
-            return $product;
-        } else {
-            // Handle the case where no product was found
-            // You can return null or throw an exception, depending on your requirements.
+        if (empty($this->id_product)) {
             return null;
         }
+
+        return (new Product())->findById($this->id_product);
     }
 
     public function getPrice()

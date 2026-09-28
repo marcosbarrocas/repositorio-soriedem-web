@@ -29,6 +29,13 @@ if ($query->rowCount() > 0) {
     $verified = password_verify($data['password'] ?? '', $seller['password']);
     $json['password_verify'] = $verified;
 
+    if ($verified && isset($seller['status']) && (int) $seller['status'] === 0) {
+        $json['password_verify'] = false;
+        $json['error'] = 'Acesso inativo.';
+        echo json_encode($json, JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
     if ($verified) {
         $token = bin2hex(random_bytes(24));
         $refresh = bin2hex(random_bytes(24));

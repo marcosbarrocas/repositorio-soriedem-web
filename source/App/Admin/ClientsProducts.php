@@ -81,7 +81,8 @@ class ClientsProducts extends Admin
 
             $idClient = filter_var($data["id_client"] ?? null, FILTER_VALIDATE_INT);
             $products = $data["products"] ?? [];
-            $prices = $data["prices"] ?? []; // preco chaveado por id do produto: prices[<id>]
+            $prices = $data["prices"] ?? []; // valor especial chaveado por id do produto: prices[<id>]
+            $required = $data["required"] ?? []; // required chaveado por id do produto: required[<id>]
 
             if (!$idClient || empty($products) || !is_array($products)) {
                 $this->message->warning("Selecione um cliente e ao menos um produto")->flash();
@@ -91,7 +92,7 @@ class ClientsProducts extends Admin
 
             $pdo = Connect::getInstance();
             $insert = $pdo->prepare(
-                "INSERT INTO clients_products (id_client, id_product, price) VALUES (:id_client, :id_product, :price)"
+                "INSERT INTO clients_products (id_client, id_product, price, required) VALUES (:id_client, :id_product, :price, :required)"
             );
             // evita associacao duplicada do mesmo produto para o mesmo cliente
             $exists = $pdo->prepare(
@@ -111,7 +112,13 @@ class ClientsProducts extends Admin
                 }
 
                 $price = $this->normalizePrice($prices[$idProduct] ?? "0");
-                $insert->execute([":id_client" => $idClient, ":id_product" => $idProduct, ":price" => $price]);
+                $isRequired = !empty($required[$idProduct]) ? 1 : 0;
+                $insert->execute([
+                    ":id_client" => $idClient,
+                    ":id_product" => $idProduct,
+                    ":price" => $price,
+                    ":required" => $isRequired
+                ]);
                 $saved++;
             }
 
@@ -131,16 +138,20 @@ class ClientsProducts extends Admin
                 return;
             }
 
-            $clientProductsUpdate->title = $data["title"];
+            $price = $this->normalizePrice($data["price"] ?? "0");
+            $isRequired = !empty($data["required"]) ? 1 : 0;
 
-            if (!$clientProductsUpdate->save()) {
-                $json["message"] = $clientProductsUpdate->message()->render();
-                echo json_encode($json);
-                return;
-            }
+            $update = Connect::getInstance()->prepare(
+                "UPDATE clients_products SET price = :price, `required` = :required WHERE id = :id"
+            );
+            $update->execute([
+                ":price" => $price,
+                ":required" => $isRequired,
+                ":id" => $clientProductsUpdate->id
+            ]);
 
-            $this->message->success("Associação atualizada com sucesso...")->flash();
-            echo json_encode(["reload" => true]);
+            $this->message->success("Valor e obrigatoriedade atualizados com sucesso...")->flash();
+            echo json_encode(["redirect" => url("/admin/clients-products/list-products/{$clientProductsUpdate->id_client}")]);
             return;
         }
 
@@ -155,10 +166,11 @@ class ClientsProducts extends Admin
                 return;
             }
 
+            $idClient = $categoryDelete->id_client;
             $categoryDelete->destroy();
 
             $this->message->success("A associação foi excluída com sucesso...")->flash();
-            echo json_encode(["redirect" => url("/admin/clients-products/home")]);
+            echo json_encode(["redirect" => url("/admin/clients-products/list-products/{$idClient}")]);
 
             return;
         }
@@ -177,10 +189,22 @@ class ClientsProducts extends Admin
             false
         );
 
+        $fixedClient = null;
+        $basketProducts = null;
+        if (!empty($data["client_id"])) {
+            $clientId = filter_var($data["client_id"], FILTER_VALIDATE_INT);
+            $fixedClient = $clientId ? (new Client())->findById($clientId) : null;
+            if ($fixedClient) {
+                $basketProducts = (new ClientProducts())->find("id_client = :idc", "idc={$fixedClient->id}")->fetch(true);
+            }
+        }
+
         echo $this->view->render("widgets/clients-products/client-products", [
             "app" => "clients-products/home",
             "head" => $head,
             "clientProducts" => $clientProductsEdit,
+            "fixedClient" => $fixedClient,
+            "basketProducts" => $basketProducts,
             "clients" => (new Client())->find()->fetch(true),
             "categories" => (new Category())->find()->fetch(true),
             "subCategories" => (new SubCategory())->find()->fetch(true)
@@ -210,13 +234,20 @@ class ClientsProducts extends Admin
      */
     public function listProducts(?array $data): void
     {
+        $client = null;
+        $clientProducts = null;
+
         if ($data) {
             $data = filter_var_array($data, FILTER_SANITIZE_STRIPPED);
-            $clientProducts = (new ClientProducts())->find('id_client = :idc', "idc={$data['clientProducts_id']}")->fetch(true);
+            $clientId = filter_var($data["clientProducts_id"] ?? null, FILTER_VALIDATE_INT);
+            if ($clientId) {
+                $client = (new Client())->findById($clientId);
+                $clientProducts = (new ClientProducts())->find("id_client = :idc", "idc={$clientId}")->fetch(true);
+            }
         }
 
         $head = $this->seo->render(
-            CONF_SITE_NAME . " | Associar Produtos do Cliente",
+            CONF_SITE_NAME . " | Detalhes da cesta",
             CONF_SITE_DESC,
             url("/admin"),
             url("/admin/assets/images/image.jpg"),
@@ -226,6 +257,7 @@ class ClientsProducts extends Admin
         echo $this->view->render("widgets/clients-products/products", [
             "app" => "clients-products/home",
             "head" => $head,
+            "client" => $client,
             "clientsProducts" => $clientProducts
         ]);
     }

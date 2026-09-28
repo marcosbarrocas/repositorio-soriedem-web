@@ -60,9 +60,8 @@
                                                 <td><?= $request->previous_amount; ?></td>
                                                 <td><?= $request->current_amount; ?></td>
                                                 <td align="center">
-                                                    <a href="<?= url('/admin/requests/request/' . $request->id); ?>" class="btn btn-info btn-sm" title="Editar"><i class="fa fa-eye"></i></a>
-
-                                                    <a href="#" class="btn btn-danger btn-sm" data-post="<?= url("/admin/requests/request/{$request->id}"); ?>" data-action="delete" data-confirm="ATENÇÃO: Tem certeza que deseja excluir o pedido e todos os dados relacionados a ele? Essa ação não pode ser feita!" data-user_id="<?= $request->id; ?>" title="Excluir"><i class="fa fa-trash"></i></a>
+                                                    <a href="<?= url('/admin/requests/request/' . $request->id); ?>" class="btn btn-info btn-sm" title="Detalhes"><i class="fa fa-eye"></i></a>
+                                                    <?php /* Excluir oculto temporariamente na listagem de pedidos. */ ?>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>

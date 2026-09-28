@@ -36,7 +36,7 @@ if (!defined("CONF_DB_HOST")) {
         define("CONF_DB_PASS", getenv("DB_PASS") ?: "");
         define("CONF_DB_NAME", getenv("DB_NAME") ?: "soriedem_app");
 
-        define("CONF_URL_BASE", getenv("URL_BASE") ?: "https://www.soriedem.com.br/appsoriedem");
+        define("CONF_URL_BASE", getenv("URL_BASE") ?: "https://www.soriedem.com.br/sistema");
 
     }
 

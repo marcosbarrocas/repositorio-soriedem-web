@@ -10,6 +10,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/sellers/home'); ?>">Vendedores</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Criar Vendedor</li>
             </ol>
+            <?= admin_back('/admin/sellers/home'); ?>
         </div>
 
         <div class="row">
@@ -71,6 +72,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/sellers/home'); ?>">Vendedores</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Editar Vendedor</li>
             </ol>
+            <?= admin_back('/admin/sellers/home'); ?>
         </div>
 
         <div class="row">

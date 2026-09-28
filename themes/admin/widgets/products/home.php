@@ -25,7 +25,7 @@
                         <div class="table-responsive">
                             <form class="form-inline mb-1" action="<?= url('/admin/products/home'); ?>" method="post">
                                 <div class="nav-search">
-                                    <input type="search" class="form-control header-search" name="s" value="<?= $search; ?>" placeholder="Buscar…" aria-label="Search">
+                                    <input type="search" class="form-control header-search" name="s" value="<?= $search; ?>" placeholder="Código ou nome do produto" aria-label="Buscar produto por código ou nome">
                                     <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i></button>
                                 </div>
                             </form>

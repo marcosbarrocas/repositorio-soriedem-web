@@ -9,50 +9,50 @@
                 <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
             </ol>
         </div>
-        <div class="col-12">
-            <div class="card p-5 mb-0">
-                <div class="row">
-                <div class="col-md-3">
-                        <div class="card overflow-hidden" style="background-color: #ccc;">
-                            <div class="card-body iconfont text-center">
-                                <h5 class="text-white">Pedidos Hoje</h5>
-                                <div class="d-flex justify-content-center">
-                                    <h5 class="mb-0 text-white mt-1"><?= $requestToday; ?></h5>
-                                </div>
-                            </div>
+        <div class="row">
+            <div class="col-sm-6 col-lg-3">
+                <a href="<?= url('/admin/requests/home'); ?>" class="card bg-secondary text-white mb-4">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="ti-clipboard" style="font-size: 2.4rem;"></i>
+                        <div class="ml-3">
+                            <div class="text-white-50">Pedidos hoje</div>
+                            <h2 class="mb-0 text-white"><?= $requestToday; ?></h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card overflow-hidden bg-warning">
-                            <div class="card-body iconfont text-center">
-                                <h5 class="text-white">Pedidos Pendentes</h5>
-                                <div class="d-flex justify-content-center">
-                                    <h5 class="mb-0 text-white mt-1"><?= $requestPending; ?></h5>
-                                </div>
-                            </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a href="<?= url('/admin/requests/home'); ?>" class="card bg-warning text-white mb-4">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="ti-alert" style="font-size: 2.4rem;"></i>
+                        <div class="ml-3">
+                            <div class="text-white-50">Pedidos pendentes</div>
+                            <h2 class="mb-0 text-white"><?= $requestPending; ?></h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card overflow-hidden bg-info">
-                            <div class="card-body iconfont text-center">
-                                <h5 class="text-white">Vendedores</h5>
-                                <div class="d-flex justify-content-center">
-                                    <h5 class="mb-0 text-white mt-1"><?= $sellers; ?></h5>
-                                </div>
-                            </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a href="<?= url('/admin/sellers/omie'); ?>" class="card bg-info text-white mb-4">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="ti-id-badge" style="font-size: 2.4rem;"></i>
+                        <div class="ml-3">
+                            <div class="text-white-50">Vendedores</div>
+                            <h2 class="mb-0 text-white"><?= $sellers; ?></h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card overflow-hidden bg-info">
-                            <div class="card-body iconfont text-center">
-                                <h5 class="text-white">Produtos</h5>
-                                <div class="d-flex justify-content-center">
-                                    <h5 class="mb-0 text-white mt-1"><?= $products; ?></h5>
-                                </div>
-                            </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a href="<?= url('/admin/products/home'); ?>" class="card bg-primary text-white mb-4">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="ti-package" style="font-size: 2.4rem;"></i>
+                        <div class="ml-3">
+                            <div class="text-white-50">Produtos</div>
+                            <h2 class="mb-0 text-white"><?= $products; ?></h2>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
     </div>

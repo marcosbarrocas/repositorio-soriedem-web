@@ -26,30 +26,40 @@ class Products extends Admin
     }
 
     /**
-     * @param array|null $data
+     * Lista os produtos e filtra por código ou título.
+     *
+     * O campo de busca envia o termo em "s". A listagem filtrada usa o caminho
+     * /admin/products/home/{termo}/{página}. O termo compara código e título.
+     * Só entram produtos ativos (status = 1). Os cadastros antigos, sem o
+     * prefixo PRD, ficam inativos e não aparecem nesta tela.
+     *
+     * @param array|null $data Dados da rota e do POST. "s" é o texto digitado. "search" e "page" vêm da URL da listagem filtrada.
      */
     public function home(?array $data): void
     {
-        //search redirect
         if (!empty($data["s"])) {
-            $s = str_search($data["s"]);
+            $s = $this->productSearchSlug($this->productSearchTerm($data["s"]));
             echo json_encode(["redirect" => url("/admin/products/home/{$s}/1")]);
             return;
         }
 
         $search = null;
-        $products = (new Product())->find();
+        $products = (new Product())->find("status = :status", "status=1");
 
-        if (!empty($data["search"]) && str_search($data["search"]) != "all") {
-            $search = str_search($data["search"]);
-            $products = (new Product())->find("title LIKE CONCAT('%', :s, '%')", "s={$search}");
+        $term = $this->productSearchTerm($data["search"] ?? null);
+        if ($term !== "all") {
+            $search = $term;
+            $products = (new Product())->find(
+                "status = :status AND (title LIKE CONCAT('%', :s, '%') OR code LIKE CONCAT('%', :s, '%'))",
+                "status=1&s=" . rawurlencode($search)
+            );
             if (!$products->count()) {
                 $this->message->info("Sua pesquisa não retornou resultados")->flash();
                 redirect("/admin/products/home");
             }
         }
 
-        $all = ($search ?? "all");
+        $all = ($search ? $this->productSearchSlug($search) : "all");
         $pager = new Pager(url("/admin/products/home/{$all}/"));
         $pager->pager($products->count(), 20, (!empty($data["page"]) ? $data["page"] : 1));
 
@@ -467,5 +477,37 @@ class Products extends Admin
 
         $this->message->success("Foto vinculada com sucesso...")->flash();
         echo json_encode(["reload" => true]);
+    }
+
+    /**
+     * Normaliza o texto da busca de produtos para a consulta no banco.
+     *
+     * O termo pode chegar do campo "s" ou do trecho {search} da URL. Na URL o
+     * espaço é trocado por "+", porque um espaço no caminho quebra a rota no
+     * Apache. Aqui o "+" (e um eventual %20) volta a ser espaço. Em seguida o
+     * texto passa por str_search, que mantém letras, números, @ e espaço.
+     * Sem texto, o retorno é "all", o mesmo valor da listagem sem filtro.
+     *
+     * @param string|null $raw Texto digitado ou vindo da URL. Null quando a listagem abre sem busca.
+     * @return string Termo usado no LIKE de código e título, ou "all" quando a busca está vazia.
+     */
+    private function productSearchTerm(?string $raw): string
+    {
+        $raw = str_replace(["+", "%20"], " ", (string) $raw);
+        return str_search($raw);
+    }
+
+    /**
+     * Monta o termo da busca no formato seguro para o caminho da listagem.
+     *
+     * Troca cada espaço por "+" para a URL /admin/products/home/{termo}/{página}
+     * continuar inteira. productSearchTerm() desfaz essa troca na consulta.
+     *
+     * @param string $term Termo já normalizado por productSearchTerm().
+     * @return string O mesmo termo, com espaços substituídos por "+".
+     */
+    private function productSearchSlug(string $term): string
+    {
+        return str_replace(" ", "+", $term);
     }
 }

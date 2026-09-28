@@ -10,6 +10,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/categories/home'); ?>">Categorias</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Criar Categoria</li>
             </ol>
+            <?= admin_back('/admin/categories/home'); ?>
         </div>
 
         <div class="row">
@@ -50,6 +51,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/categories/home'); ?>">Categorias</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Editar Categoria</li>
             </ol>
+            <?= admin_back('/admin/categories/home'); ?>
         </div>
 
         <div class="row">

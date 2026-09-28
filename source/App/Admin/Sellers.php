@@ -88,7 +88,7 @@ class Sellers extends Admin
             if (!$sync->syncVendedores()) {
                 $this->message->error("Erro ao consultar a Omie: " . $sync->error())->flash();
             } else {
-                $this->message->success("Vendedores atualizados a partir da Omie.")->flash();
+                $this->message->success($this->resumoSyncVendedores($sync->stats()))->flash();
             }
             redirect("/admin/sellers/omie");
             return;
@@ -140,7 +140,7 @@ class Sellers extends Admin
         }
 
         $head = $this->seo->render(
-            CONF_SITE_NAME . " | Vendedores (Omie) e Logins",
+            CONF_SITE_NAME . " | Acesso ao app",
             CONF_SITE_DESC,
             url("/admin"),
             url("/admin/assets/images/image.jpg"),
@@ -219,6 +219,169 @@ class Sellers extends Admin
         }
 
         echo json_encode(["reload" => true]);
+    }
+
+    /**
+     * Abre e salva o acesso de um vendedor ao app.
+     *
+     * A lista da Omie só mostra quem é o vendedor. O login do app (e-mail,
+     * senha e status) fica nesta tela. Sem login, o formulário cria o acesso.
+     * Com login, a senha só é trocada se o campo vier preenchido; em branco,
+     * a senha atual permanece. O status 1 deixa o vendedor entrar no app e o
+     * status 0 impede o login e apaga os tokens já emitidos.
+     *
+     * @param array|null $data Dados da rota e do POST. omie_codigo é o código do vendedor na Omie. No POST também chegam email, password (obrigatória só na criação) e status ("1" ativo ou "0" inativo).
+     * @return void Não devolve valor. Mostra a tela ou redireciona para ela depois de salvar, com um aviso na sessão.
+     */
+    public function access(?array $data): void
+    {
+        $codigo = filter_var($data["omie_codigo"] ?? null, FILTER_VALIDATE_INT);
+        if (!$codigo) {
+            redirect("/admin/sellers/omie");
+            return;
+        }
+
+        $pdo = Connect::getInstance();
+        $busca = $pdo->prepare("SELECT codigo, nome, email, inativo FROM omie_vendedores WHERE codigo = :c LIMIT 1");
+        $busca->execute([":c" => $codigo]);
+        $vendedor = $busca->fetch(\PDO::FETCH_ASSOC);
+        if (!$vendedor) {
+            $this->message->error("Vendedor não encontrado.")->flash();
+            redirect("/admin/sellers/omie");
+            return;
+        }
+
+        $seller = $this->sellerDoCodigo((int) $codigo, (string) ($vendedor["email"] ?? ""));
+
+        if (($_SERVER["REQUEST_METHOD"] ?? "GET") === "POST") {
+            $senha = (string) ($data["password"] ?? "");
+            $post = filter_var_array((array) $data, FILTER_SANITIZE_STRIPPED);
+            $email = trim((string) ($post["email"] ?? ""));
+            $status = ((string) ($post["status"] ?? "1") === "0") ? 0 : 1;
+
+            if ($email === "" || !is_email($email)) {
+                $this->message->warning("Informe um e-mail válido para o acesso ao app.")->flash();
+                redirect("/admin/sellers/access/{$codigo}");
+                return;
+            }
+            if (!$seller && mb_strlen($senha) < CONF_PASSWD_MIN_LEN) {
+                $min = CONF_PASSWD_MIN_LEN;
+                $this->message->warning("A senha deve ter ao menos {$min} caracteres.")->flash();
+                redirect("/admin/sellers/access/{$codigo}");
+                return;
+            }
+            if ($seller && $senha !== "" && mb_strlen($senha) < CONF_PASSWD_MIN_LEN) {
+                $min = CONF_PASSWD_MIN_LEN;
+                $this->message->warning("A nova senha deve ter ao menos {$min} caracteres.")->flash();
+                redirect("/admin/sellers/access/{$codigo}");
+                return;
+            }
+
+            $ignorarId = $seller ? (int) $seller->id : 0;
+            $duplicado = $pdo->prepare("SELECT id FROM sellers WHERE email = :e AND id <> :id LIMIT 1");
+            $duplicado->execute([":e" => $email, ":id" => $ignorarId]);
+            if ($duplicado->fetchColumn()) {
+                $this->message->warning("Esse e-mail já está em uso por outro acesso.")->flash();
+                redirect("/admin/sellers/access/{$codigo}");
+                return;
+            }
+
+            if (!$seller) {
+                $partes = preg_split('/\s+/', trim((string) $vendedor["nome"]), 2);
+                $ins = $pdo->prepare(
+                    "INSERT INTO sellers (first_name, last_name, phone, document, email, password, omie_codigo, status)
+                     VALUES (:fn, :ln, '', '', :email, :pw, :oc, :status)"
+                );
+                $ins->execute([
+                    ":fn" => $partes[0] ?? $vendedor["nome"],
+                    ":ln" => $partes[1] ?? "",
+                    ":email" => $email,
+                    ":pw" => passwd($senha),
+                    ":oc" => $codigo,
+                    ":status" => $status,
+                ]);
+                $sellerId = (int) $pdo->lastInsertId();
+                $this->message->success("Acesso ao app criado.")->flash();
+            } else {
+                $sellerId = (int) $seller->id;
+                $sql = "UPDATE sellers SET email = :email, status = :status, omie_codigo = :oc";
+                $params = [":email" => $email, ":status" => $status, ":oc" => $codigo, ":id" => $sellerId];
+                if ($senha !== "") {
+                    $sql .= ", password = :pw";
+                    $params[":pw"] = passwd($senha);
+                }
+                if ($status === 0) {
+                    $sql .= ", api_token = NULL";
+                }
+                $sql .= " WHERE id = :id";
+                $upd = $pdo->prepare($sql);
+                $upd->execute($params);
+                $this->message->success("Acesso ao app atualizado.")->flash();
+            }
+
+            if ($status === 0 || $senha !== "") {
+                $this->encerrarSessoesDoVendedor($sellerId);
+            }
+
+            redirect("/admin/sellers/access/{$codigo}");
+            return;
+        }
+
+        $head = $this->seo->render(
+            CONF_SITE_NAME . " | Acesso ao app",
+            CONF_SITE_DESC,
+            url("/admin"),
+            url("/admin/assets/images/image.jpg"),
+            false
+        );
+
+        echo $this->view->render("widgets/sellers/access", [
+            "app" => "sellers/omie",
+            "head" => $head,
+            "vendedor" => $vendedor,
+            "seller" => $seller,
+            "codigo" => $codigo,
+        ]);
+    }
+
+    /**
+     * Localiza o login do app ligado a um vendedor da Omie.
+     *
+     * Procura primeiro pelo código Omie gravado em sellers.omie_codigo.
+     * Se não achar e a Omie tiver e-mail, procura pelo e-mail, que é o
+     * vínculo usado quando o login foi criado antes do código ser preenchido.
+     *
+     * @param int $codigo Código do vendedor na Omie.
+     * @param string $email E-mail do vendedor na Omie. Pode ser vazio.
+     * @return Seller|null O login encontrado, ou null quando o vendedor ainda não tem acesso ao app.
+     */
+    private function sellerDoCodigo(int $codigo, string $email): ?Seller
+    {
+        $porCodigo = (new Seller())->find("omie_codigo = :c", "c={$codigo}")->fetch();
+        if ($porCodigo) {
+            return $porCodigo;
+        }
+        $email = trim($email);
+        if ($email === "") {
+            return null;
+        }
+        return (new Seller())->find("email = :e", "e={$email}")->fetch();
+    }
+
+    /**
+     * Apaga as sessões abertas de um vendedor no app.
+     *
+     * Usado quando a senha muda ou o acesso fica inativo, para o token
+     * antigo deixar de autorizar as chamadas da API.
+     *
+     * @param int $sellerId Id do registro em sellers.
+     * @return void Não devolve valor. Remove as linhas de seller_sessions desse vendedor.
+     */
+    private function encerrarSessoesDoVendedor(int $sellerId): void
+    {
+        $pdo = Connect::getInstance();
+        $del = $pdo->prepare("DELETE FROM seller_sessions WHERE id_seller = :id");
+        $del->execute([":id" => $sellerId]);
     }
 
     /**
@@ -319,5 +482,39 @@ class Sellers extends Admin
             "head" => $head,
             "seller" => $sellerEdit
         ]);
+    }
+
+    /**
+     * Monta o texto exibido depois de atualizar os vendedores pela Omie.
+     *
+     * Usa os contadores gravados por OmieSync::syncVendedores(): quantos
+     * vendedores da Omie foram ligados a um login local e quais ficaram sem
+     * correspondência. A lista de nomes é limitada para a mensagem caber no
+     * aviso do painel.
+     *
+     * @param array<string,mixed> $stats Retorno de OmieSync::stats() após syncVendedores(). Espera as chaves vendedores_mapeados (int), vendedores_sem_match (int) e vendedores_sem_match_lista (lista de strings "Nome (#código)").
+     * @return string Frase pronta para o aviso de sucesso do painel.
+     */
+    private function resumoSyncVendedores(array $stats): string
+    {
+        $mapeados = (int) ($stats["vendedores_mapeados"] ?? 0);
+        $semMatch = (int) ($stats["vendedores_sem_match"] ?? 0);
+        $texto = "Vendedores atualizados a partir da Omie. {$mapeados} vinculados a um login local.";
+
+        if ($semMatch < 1) {
+            return $texto;
+        }
+
+        $lista = $stats["vendedores_sem_match_lista"] ?? [];
+        $amostra = is_array($lista) ? array_slice($lista, 0, 8) : [];
+        $texto .= " {$semMatch} ainda sem login correspondente";
+        if ($amostra) {
+            $texto .= ": " . implode(", ", $amostra);
+            if (is_array($lista) && count($lista) > 8) {
+                $texto .= " e outros";
+            }
+        }
+
+        return $texto . ".";
     }
 }

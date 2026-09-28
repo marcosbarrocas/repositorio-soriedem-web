@@ -10,6 +10,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/users/home'); ?>">Usuários</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Criar Usuário</li>
             </ol>
+            <?= admin_back('/admin/users/home'); ?>
         </div>
 
         <div class="row">
@@ -96,6 +97,7 @@
                 <li class="breadcrumb-item"><a href="<?= url('/admin/users/home'); ?>">Usuários</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Editar Usuário</li>
             </ol>
+            <?= admin_back('/admin/users/home'); ?>
         </div>
 
         <div class="row">

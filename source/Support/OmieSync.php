@@ -138,9 +138,21 @@ class OmieSync
     }
 
     /**
-     * Mapeia vendedores da Omie para os sellers locais (preenche sellers.omie_codigo).
-     * Casa por email (quando houver) ou por nome normalizado (first_name).
-     * @return bool
+     * Busca os vendedores na API da Omie e grava o cache local.
+     *
+     * A Omie é a fonte dos vendedores do sistema e do app. Cada página da
+     * consulta ListarVendedores é gravada em omie_vendedores (código, nome,
+     * e-mail e se está inativo). Em seguida tenta ligar cada vendedor a um
+     * login já existente em sellers, primeiro pelo e-mail e, se não achar,
+     * pelo nome. Quando encontra, preenche sellers.omie_codigo.
+     *
+     * Vendedores da Omie que não têm login local ficam na estatística
+     * vendedores_sem_match_lista. No terminal (php bin/omie-sync.php) essa
+     * lista também é escrita em STDERR. No painel web STDERR não existe, então
+     * a lista só volta em stats() para a mensagem da tela.
+     *
+     * @param int $porPagina Quantidade de vendedores pedida em cada página da Omie. Padrão 100.
+     * @return bool true quando a Omie respondeu e o cache foi atualizado. false quando a consulta falha; o motivo fica em error().
      */
     public function syncVendedores(int $porPagina = 100): bool
     {
@@ -203,8 +215,9 @@ class OmieSync
 
         $this->stats["vendedores_mapeados"] = $matched;
         $this->stats["vendedores_sem_match"] = count($unmatched);
-        if (!empty($unmatched)) {
-            fwrite(STDERR, "Vendedores sem match (mapear manual): " . implode(", ", $unmatched) . "\n");
+        $this->stats["vendedores_sem_match_lista"] = $unmatched;
+        if (!empty($unmatched) && defined("STDERR")) {
+            fwrite(\STDERR, "Vendedores sem match (mapear manual): " . implode(", ", $unmatched) . "\n");
         }
         return true;
     }

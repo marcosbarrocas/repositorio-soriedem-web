@@ -10,6 +10,7 @@
                     <li class="breadcrumb-item"><a href="<?= url('/admin/requests/home'); ?>">Pedidos</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Criar Pedido</li>
                 </ol>
+                <?= admin_back('/admin/requests/home'); ?>
             </div>
 
             <div class="row">
@@ -65,6 +66,7 @@
                     <li class="breadcrumb-item"><a href="<?= url('/admin/requests/home'); ?>">Pedidos</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Editar Pedido</li>
                 </ol>
+                <?= admin_back('/admin/requests/home'); ?>
             </div>
 
             <div class="row">
@@ -77,14 +79,88 @@
                             <form action="<?= url('/admin/requests/request/' . $request->id); ?>" method="post">
                                 <input type="hidden" name="action" value="update">
                                 <div class="form-row">
+                                    <?php
+                                    $client = $request->getClient();
+                                    $seller = $request->getSeller();
+                                    $sellerName = $seller ? trim($seller->first_name . " " . $seller->last_name) : $request->seller;
+                                    $fantasy = $client && !empty($client->contact_name) ? $client->contact_name : $request->client;
+                                    $corporate = $client && !empty($client->corporate_name) ? $client->corporate_name : $request->client;
+                                    $city = $client->city ?? "";
+                                    $state = $client->state ?? "";
+                                    if ($state !== "" && stripos($city, $state) === false) {
+                                        $city = trim($city . "/" . $state, "/");
+                                    }
+                                    $address = $client ? trim("{$client->address}, {$client->number} - {$client->district} - {$city}", " ,-/") : "";
+                                    ?>
 
+                                    <div class="col-md-12 col-lg-12 mb-3">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h3 class="card-title">Dados do pedido</h3>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="mb-1">Pedido</label>
+                                                        <div><strong>#<?= $request->request_number; ?></strong></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="mb-1">Data do pedido</label>
+                                                        <div><?= date_fmt($request->created_at, "d/m/Y H:i"); ?></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="mb-1">Última atualização</label>
+                                                        <div><?= date_fmt($request->updated_at, "d/m/Y H:i"); ?></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="mb-1">Vendedor</label>
+                                                        <div><strong><?= $sellerName ?: $request->seller; ?></strong></div>
+                                                        <?php if (!empty($request->seller_fullname) && $request->seller_fullname !== $sellerName) : ?>
+                                                            <small class="text-muted">Responsável: <?= $request->seller_fullname; ?></small>
+                                                        <?php endif; ?>
+                                                        <?php if ($seller && !empty($seller->email)) : ?>
+                                                            <br><small class="text-muted"><?= $seller->email; ?></small>
+                                                        <?php endif; ?>
+                                                        <?php if ($seller && !empty($seller->phone)) : ?>
+                                                            <br><small class="text-muted"><?= $seller->phone; ?></small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="mb-1">Cliente</label>
+                                                        <div><strong><?= $fantasy; ?></strong></div>
+                                                        <?php if ($corporate && $corporate !== $fantasy) : ?>
+                                                            <small class="text-muted"><?= $corporate; ?></small>
+                                                        <?php endif; ?>
+                                                        <?php if ($client && !empty($client->cnpj)) : ?>
+                                                            <br><small class="text-muted">CNPJ: <?= $client->cnpj; ?></small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="mb-1">Contato do cliente</label>
+                                                        <div><?= $client->phone ?? ""; ?></div>
+                                                        <small class="text-muted"><?= $client->email ?? ""; ?></small>
+                                                    </div>
+                                                    <div class="col-md-8 mb-3">
+                                                        <label class="mb-1">Endereço</label>
+                                                        <div><?= $address; ?></div>
+                                                    </div>
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="mb-1">Local do pedido</label>
+                                                        <div>
+                                                            <a href="http://maps.google.com/maps?q=<?= $request->latitude; ?>,<?= $request->longitude; ?>" target="_blank">Ver no mapa</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <div class="col-md-12 col-lg-12">
                                         <div class="card">
                                             <div class="card-header">
                                                 <div class="d-flex justify-content-between align-items-center w-100">
                                                     <h3 class="card-title">Produtos</h3>
-                                                    <h4 class="card-title">Total Pedido: R$<?= number_format($request->total, 2, ',', ''); ?></h4>
+                                                    <h4 class="card-title">Total Pedido: R$ <?= number_format((float) $request->total, 2, ",", "."); ?></h4>
                                                 </div>
                                             </div>
                                             <div class="card-body">
@@ -95,7 +171,10 @@
                                                                 <th>Código</th>
                                                                 <th>Foto</th>
                                                                 <th>Produto</th>
-                                                                <th>Quantidade</th>
+                                                                <th>Qtde inventário</th>
+                                                                <th>Qtde pedido</th>
+                                                                <th>Valor unitário</th>
+                                                                <th>Total do item</th>
                                                                 <!-- <th>Preço</th>
                                                                 <th>Total</th> -->
                                                             </tr>
@@ -103,13 +182,19 @@
                                                         <tbody>
                                                             <?php if ($request->getItemsRequest()) : ?>
                                                                 <?php foreach ($request->getItemsRequest() as $product) : ?>
+                                                                    <?php $item = $product->getProduct(); ?>
                                                                     <tr>
-                                                                        <th scope="row"><?= $product->getProduct()->code; ?></th>
-                                                                        <th><img src="<?= image($product->getProduct()->photo, 30, 30); ?>" alt="Foto"></th>
-                                                                        <th><?= $product->getProduct()->title; ?></th>
+                                                                        <th scope="row"><?= $item ? $item->code : ""; ?></th>
+                                                                        <th>
+                                                                            <?php if ($item && !empty($item->photo)) : ?>
+                                                                                <img src="<?= image($item->photo, 30, 30); ?>" alt="Foto">
+                                                                            <?php endif; ?>
+                                                                        </th>
+                                                                        <th><?= $item ? $item->title : "Produto não encontrado"; ?></th>
+                                                                        <th><?= $product->previous_amount; ?></th>
                                                                         <th><?= $product->current_amount; ?></th>
-                                                                        <!-- <th>R$ <?= str_replace('.', ',', $product->getProduct()->value); ?></th>
-                                                                        <th>R$ <?= number_format(intval($product->getProduct()->value) * $product->current_amount, 2, ',', ''); ?></th> -->
+                                                                        <th>R$ <?= number_format((float) $product->item_value, 2, ",", "."); ?></th>
+                                                                        <th>R$ <?= number_format((float) $product->total_item_value, 2, ",", "."); ?></th>
                                                                     </tr>
                                                                 <?php endforeach; ?>
                                                             <?php endif; ?>

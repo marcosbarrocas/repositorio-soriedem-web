@@ -36,17 +36,32 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>Cliente</th>
+                                        <th>Total produtos</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if ($clientsProducts): ?>
                                         <?php foreach ($clientsProducts as $clientProducts): ?>
+                                            <?php
+                                            $client = $clientProducts->getClient();
+                                            $fantasy = $client && !empty($client->contact_name) ? $client->contact_name : ($client ? $client->corporate_name : "");
+                                            $corporate = $client ? $client->corporate_name : "";
+                                            ?>
                                             <tr>
-                                                <th scope="row"><?= $clientProducts->getClient()->id; ?></th>
-                                                <td><?= $clientProducts->getClient()->corporate_name; ?></td>
+                                                <th scope="row"><?= $client ? $client->id : ""; ?></th>
+                                                <td>
+                                                    <strong><?= $fantasy; ?></strong>
+                                                    <?php if ($corporate && $corporate !== $fantasy) : ?>
+                                                        <br><small class="text-muted"><?= $corporate; ?></small>
+                                                    <?php endif; ?>
+                                                    <?php if ($client && !empty($client->cnpj)) : ?>
+                                                        <br><small class="text-muted">CNPJ: <?= $client->cnpj; ?></small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><?= $client ? (new \Source\Models\ClientProducts())->countByClient((int) $client->id) : 0; ?></td>
                                                 <td align="center">
-                                                    <a href="<?= url('/admin/clients-products/list-products/'.$clientProducts->getClient()->id); ?>"
+                                                    <a href="<?= url('/admin/clients-products/list-products/' . ($client->id ?? "")); ?>"
                                                         class="btn btn-info btn-sm" title="Visualizar Produtos"><i
                                                             class="fa fa-eye"></i></a>
 

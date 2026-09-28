@@ -32,4 +32,19 @@ class ClientProducts extends Model
     {
         return (new Client())->findById($this->id_client);
     }
+
+    /**
+     * Conta os produtos já associados a um cliente na cesta.
+     *
+     * Cada registro de clients_products representa um produto que pode ser
+     * comercializado para aquele cliente. O total é a quantidade desses
+     * registros, não o cadastro geral de produtos.
+     *
+     * @param int $clientId Id do cliente na tabela clients.
+     * @return int Quantidade de produtos associados. Retorna 0 quando o cliente não tem cesta.
+     */
+    public function countByClient(int $clientId): int
+    {
+        return (new ClientProducts())->find("id_client = :id", "id={$clientId}")->count();
+    }
 }

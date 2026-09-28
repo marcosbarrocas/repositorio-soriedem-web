@@ -4,10 +4,14 @@
     <div class="side-app">
         <div class="page-header">
             <h4 class="page-title">Vendedores</h4>
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="<?= url('/admin/dash/home') ?>">Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Vendedores</li>
-            </ol>
+            <div class="d-flex align-items-center">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="<?= url('/admin/dash/home') ?>">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?= url('/admin/sellers/omie') ?>">Vendedores</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Logins</li>
+                </ol>
+                <?= admin_back('/admin/sellers/omie'); ?>
+            </div>
         </div>
 
         <div class="row">

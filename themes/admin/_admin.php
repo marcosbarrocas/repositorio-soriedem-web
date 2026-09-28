@@ -114,26 +114,25 @@
                     </li> -->
 
                     <li>
-                        <a class="side-menu__item" href="<?= url('/admin/requests/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Pedidos</span></a>
+                        <a class="side-menu__item" href="<?= url('/admin/requests/home'); ?>"><i class="side-menu__icon ti-clipboard"></i><span class="side-menu__label">Pedidos</span></a>
                     </li>
                     <li>
-                        <a class="side-menu__item" href="<?= url('/admin/sellers/omie'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Vendedores</span></a>
+                        <a class="side-menu__item" href="<?= url('/admin/sellers/omie'); ?>"><i class="side-menu__icon ti-id-badge"></i><span class="side-menu__label">Vendedores</span></a>
                     </li>
                     <li>
-                        <a class="side-menu__item" href="<?= url('/admin/products/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Produtos</span></a>
+                        <a class="side-menu__item" href="<?= url('/admin/products/home'); ?>"><i class="side-menu__icon ti-package"></i><span class="side-menu__label">Produtos</span></a>
                     </li>
                     <li>
-                        <a class="side-menu__item" href="<?= url('/admin/categories/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Categorias</span></a>
+                        <a class="side-menu__item" href="<?= url('/admin/clients-products/home'); ?>"><i class="side-menu__icon ti-shopping-cart-full"></i><span class="side-menu__label">Cesta de Produtos</span></a>
                     </li>
                     <li>
-                        <a class="side-menu__item" href="<?= url('/admin/sub-categories/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Sub Categorias</span></a>
-                    </li>
-
-                    <li>
-                        <a class="side-menu__item" href="<?= url('/admin/clients-products/home'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Associar Produtos</span></a>
+                        <a class="side-menu__item" href="<?= url('/admin/categories/home'); ?>"><i class="side-menu__icon ti-tag"></i><span class="side-menu__label">Categorias</span></a>
                     </li>
                     <li>
-                        <a class="side-menu__item" href="<?= url('/admin/products/photos'); ?>"><i class="side-menu__icon ti-user"></i><span class="side-menu__label">Fotos pendentes</span></a>
+                        <a class="side-menu__item" href="<?= url('/admin/sub-categories/home'); ?>"><i class="side-menu__icon ti-layers"></i><span class="side-menu__label">Sub Categorias</span></a>
+                    </li>
+                    <li>
+                        <a class="side-menu__item" href="<?= url('/admin/products/photos'); ?>"><i class="side-menu__icon ti-camera"></i><span class="side-menu__label">Fotos pendentes</span></a>
                     </li>
                     <?php if (\Source\Models\Auth::user() && \Source\Models\Auth::user()->level >= 5) : ?>
                     <li>

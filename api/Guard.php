@@ -24,7 +24,7 @@ function require_seller(PDO $PDO): array
 
     // Sessao nova (access_token com validade). Junta com sellers para os dados.
     $stmt = $PDO->prepare(
-        "SELECT s.id, s.first_name, s.last_name, s.email, s.omie_codigo
+        "SELECT s.id, s.first_name, s.last_name, s.email, s.omie_codigo, s.status
          FROM seller_sessions ss
          INNER JOIN sellers s ON s.id = ss.id_seller
          WHERE ss.access_token = :t AND ss.access_expires > NOW()
@@ -35,12 +35,12 @@ function require_seller(PDO $PDO): array
 
     // Fallback para o token legado (sellers.api_token) durante a transicao.
     if (!$seller) {
-        $legacy = $PDO->prepare("SELECT id, first_name, last_name, email, omie_codigo FROM sellers WHERE api_token = :t LIMIT 1");
+        $legacy = $PDO->prepare("SELECT id, first_name, last_name, email, omie_codigo, status FROM sellers WHERE api_token = :t LIMIT 1");
         $legacy->execute([':t' => $token]);
         $seller = $legacy->fetch(PDO::FETCH_ASSOC);
     }
 
-    if (!$seller) {
+    if (!$seller || (isset($seller['status']) && (int) $seller['status'] === 0)) {
         http_response_code(401);
         echo json_encode(['error' => 'Token invalido.']);
         exit;
