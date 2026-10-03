@@ -13,7 +13,7 @@
 // abaixo so preenchem o que o config.local nao tiver definido.
 $__localConfig = __DIR__ . "/config.local.php";
 if (is_file($__localConfig)) {
-    require $__localConfig;
+    require_once $__localConfig;
 }
 
 if (!defined("CONF_DB_HOST")) {

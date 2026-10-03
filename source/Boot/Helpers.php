@@ -259,21 +259,20 @@ function url_back(): string
 }
 
 /**
- * @param string $url
+ * Envia o navegador para outra URL.
+ *
+ * O destino sempre vai no cabeçalho Location. Antes, quando a rota atual era
+ * a mesma do destino, o status 302 saía sem Location e a tela ficava em branco.
+ *
+ * @param string $url Caminho interno, como /admin/products/home, ou URL completa.
+ * @return void Não devolve valor. Encerra a execução depois de enviar o redirecionamento.
  */
 function redirect(string $url): void
 {
+    $location = (filter_var($url, FILTER_VALIDATE_URL) ? $url : url($url));
     header("HTTP/1.1 302 Redirect");
-    if (filter_var($url, FILTER_VALIDATE_URL)) {
-        header("Location: {$url}");
-        exit;
-    }
-
-    if (filter_input(INPUT_GET, "route", FILTER_DEFAULT) != $url) {
-        $location = url($url);
-        header("Location: {$location}");
-        exit;
-    }
+    header("Location: {$location}");
+    exit;
 }
 
 /**

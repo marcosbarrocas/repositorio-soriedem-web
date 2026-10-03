@@ -86,7 +86,9 @@ class ClientsProducts extends Admin
 
             if (!$idClient || empty($products) || !is_array($products)) {
                 $this->message->warning("Selecione um cliente e ao menos um produto")->flash();
-                echo json_encode(["reload" => true]);
+                redirect($idClient
+                    ? "/admin/clients-products/add/{$idClient}"
+                    : "/admin/clients-products/client-products");
                 return;
             }
 
@@ -123,7 +125,7 @@ class ClientsProducts extends Admin
             }
 
             $this->message->success("{$saved} produto(s) associado(s) com sucesso...")->flash();
-            echo json_encode(["redirect" => url("/admin/clients-products/list-products/{$idClient}")]);
+            redirect("/admin/clients-products/list-products/{$idClient}");
             return;
         }
 

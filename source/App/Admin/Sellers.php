@@ -90,7 +90,7 @@ class Sellers extends Admin
             } else {
                 $this->message->success($this->resumoSyncVendedores($sync->stats()))->flash();
             }
-            redirect("/admin/sellers/omie");
+            echo json_encode(["redirect" => url("/admin/sellers/omie")]);
             return;
         }
 

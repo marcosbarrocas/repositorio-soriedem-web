@@ -136,7 +136,7 @@
                                     </div>
                                     <div class="form-group col-md-6">
                                         <label>Valor</label>
-                                        <input type="text" class="form-control mask-money" name="price" value="<?= number_format((float) $clientProducts->price, 2, ",", "."); ?>" placeholder="Valor">
+                                        <input type="text" class="form-control mask-money" name="price" value="<?= money_br((string) $clientProducts->price); ?>" placeholder="Valor">
                                     </div>
                                     <div class="form-group col-md-6 d-flex align-items-end">
                                         <label class="mb-2">
@@ -213,7 +213,7 @@
                                 <input class="form-check-input" type="checkbox" name="products[]" value="${p.id}">
                                 ${img}
                                 <label class="form-check-label flex-grow-1">${escapeHtml(p.code)} — ${escapeHtml(p.title)}</label>
-                                <input type="text" class="mask-money form-control" style="max-width:140px" name="prices[${p.id}]" value="${p.value ?? ''}" placeholder="Valor" title="Valor especial deste produto para o cliente">
+                                <input type="text" class="mask-money form-control" style="max-width:140px" name="prices[${p.id}]" value="${escapeHtml(p.value ?? '')}" placeholder="Valor" title="Valor especial deste produto para o cliente">
                                 <label class="mb-0 d-flex align-items-center" style="gap:6px; white-space:nowrap">
                                     <input type="checkbox" name="required[${p.id}]" value="1"> Obrigatório
                                 </label>

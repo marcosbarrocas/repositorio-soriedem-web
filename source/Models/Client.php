@@ -37,6 +37,44 @@ class Client extends Model
     }
 
     /**
+     * Monta o endereço do cliente em uma única linha.
+     *
+     * Junta logradouro e número, depois bairro e cidade. A cidade vinda da
+     * Omie às vezes já traz a sigla do estado entre parênteses, como
+     * "BELO HORIZONTE (MG)". Nesse caso a sigla de state não é repetida.
+     *
+     * @return string Endereço legível. String vazia quando o cliente não tem logradouro, número, bairro nem cidade.
+     */
+    public function enderecoCompleto(): string
+    {
+        $rua = array_filter([
+            trim((string) $this->address),
+            trim((string) $this->number),
+        ], static function (string $parte): bool {
+            return $parte !== "";
+        });
+        $linha = implode(", ", $rua);
+
+        $cidade = trim((string) $this->city);
+        $uf = trim((string) $this->state);
+        if ($cidade !== "" && $uf !== "" && stripos($cidade, $uf) === false) {
+            $cidade .= " - " . $uf;
+        }
+
+        $resto = array_filter([
+            trim((string) $this->district),
+            $cidade,
+        ], static function (string $parte): bool {
+            return $parte !== "";
+        });
+        if ($resto) {
+            $linha .= ($linha !== "" ? " - " : "") . implode(", ", $resto);
+        }
+
+        return $linha;
+    }
+
+    /**
      * @return Seller|null
      */
     public function getSeller(): ?Seller

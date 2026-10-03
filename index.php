@@ -64,6 +64,10 @@ $route->get("/sellers/seller/{seller_id}", "Sellers:seller");
 $route->post("/sellers/seller/{seller_id}", "Sellers:seller");
 
 //clients
+$route->get("/clients/omie", "Clients:omie");
+$route->post("/clients/omie", "Clients:omie");
+$route->get("/clients/omie/vendedor/{vendedor}/{search}/{page}", "Clients:omie");
+$route->get("/clients/omie/{search}/{page}", "Clients:omie");
 $route->get("/clients/home", "Clients:home");
 $route->post("/clients/home", "Clients:home");
 $route->get("/clients/home/{search}/{page}", "Clients:home");

@@ -17,7 +17,7 @@
                         <div class="d-flex justify-content-between align-items-center w-100">
                             <h3 class="card-title">Usuários do app</h3>
                             <div class="d-flex" style="gap:8px">
-                                <form action="<?= url('/admin/sellers/omie'); ?>" method="post" class="ajax_off m-0">
+                                <form action="<?= url('/admin/sellers/omie'); ?>" method="post" class="m-0">
                                     <input type="hidden" name="action" value="sync">
                                     <button type="submit" class="btn btn-info btn-sm"><i class="fa fa-refresh"></i> Atualizar da Omie</button>
                                 </form>

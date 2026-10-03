@@ -16,9 +16,10 @@
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center w-100">
                             <h3 class="card-title">Produtos</h3>
-                            <div>
-                                <a href="<?= url('/admin/products/product'); ?>" class="btn btn-pill btn-success"><i class="fa fa-plus"></i> Adicionar Produto</a>
-                            </div>
+                            <form action="<?= url('/admin/products/home'); ?>" method="post" class="js-omie-sync m-0">
+                                <input type="hidden" name="action" value="sync">
+                                <button type="submit" class="btn btn-info"><i class="fa fa-refresh"></i> Atualizar da Omie</button>
+                            </form>
                         </div>
                     </div>
                     <div class="card-body">
@@ -65,3 +66,13 @@
     </div>
 </div>
 <!--/App-Content-->
+<?php $v->start("scripts"); ?>
+<script>
+    document.querySelector(".js-omie-sync").addEventListener("submit", function () {
+        var title = document.querySelector(".ajax_load_box_title");
+        if (title) {
+            title.textContent = "Atualizando produtos na Omie...";
+        }
+    });
+</script>
+<?php $v->end(); ?>

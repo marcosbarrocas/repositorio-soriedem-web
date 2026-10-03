@@ -7,6 +7,7 @@ use Source\Models\ClientProducts;
 use Source\Models\Product;
 use Source\Models\Provider;
 use Source\Models\SubCategory;
+use Source\Support\OmieSync;
 use Source\Support\Pager;
 use Source\Support\Thumb;
 use Source\Support\Upload;
@@ -33,10 +34,32 @@ class Products extends Admin
      * Só entram produtos ativos (status = 1). Os cadastros antigos, sem o
      * prefixo PRD, ficam inativos e não aparecem nesta tela.
      *
-     * @param array|null $data Dados da rota e do POST. "s" é o texto digitado. "search" e "page" vêm da URL da listagem filtrada.
+     * O botão Atualizar da Omie envia action=sync em segundo plano. A lista
+     * permanece na tela, com o aviso de carregamento, enquanto ListarProdutos
+     * percorre a API e grava código, título, valor, foto, estoque e situação.
+     * Ao terminar, a resposta pede para recarregar esta mesma lista, onde a
+     * mensagem de sucesso ou de erro aparece.
+     *
+     * @param array|null $data Dados da rota e do POST. "action" = "sync" atualiza a Omie. "s" é o texto digitado. "search" e "page" vêm da URL da listagem filtrada.
+     * @return void Não devolve valor. Mostra a listagem, devolve o recarregamento em JSON depois da Omie, ou redireciona a busca.
      */
     public function home(?array $data): void
     {
+        if (!empty($data["action"]) && $data["action"] === "sync") {
+            set_time_limit(300);
+            $sync = new OmieSync();
+            if (!$sync->syncProdutos()) {
+                $this->message->error("Erro ao consultar a Omie: " . $sync->error())->flash();
+            } else {
+                $stats = $sync->stats();
+                $inseridos = (int) ($stats["produtos_inseridos"] ?? 0);
+                $atualizados = (int) ($stats["produtos_atualizados"] ?? 0);
+                $this->message->success("Produtos atualizados a partir da Omie. {$inseridos} novos e {$atualizados} atualizados.")->flash();
+            }
+            echo json_encode(["redirect" => url("/admin/products/home")]);
+            return;
+        }
+
         if (!empty($data["s"])) {
             $s = $this->productSearchSlug($this->productSearchTerm($data["s"]));
             echo json_encode(["redirect" => url("/admin/products/home/{$s}/1")]);
@@ -360,10 +383,15 @@ class Products extends Admin
     }
 
     /**
-     * Busca produtos por nome ou codigo (independente de categoria).
-     * Usado na tela de cesta para associar produtos vindos da Omie.
-     * POST /admin/products/search  { q: "texto", only_with_photo: "1"? }
-     * @param array|null $data
+     * Busca produtos por nome ou código, independente de categoria.
+     *
+     * Usada na cesta para associar produtos vindos da Omie e na tela de fotos
+     * pendentes. O valor unitário da Omie vem com ponto decimal e casas extras,
+     * como "137.445". money_br() corta na segunda casa e devolve "137,44",
+     * no formato que a máscara do campo de preço da cesta espera.
+     *
+     * @param array|null $data POST com "q" (nome ou código, mínimo de 2 caracteres) e, na tela de fotos, "only_with_photo" = "1" para trazer só produtos que já têm imagem.
+     * @return void Não devolve valor. Imprime um JSON com até 50 produtos. Cada item traz os dados do cadastro e o campo value já em reais brasileiros. Lista vazia quando o termo é curto ou não há resultado.
      */
     public function searchProducts(?array $data): void
     {
@@ -390,7 +418,9 @@ class Products extends Admin
         $out = [];
         if ($products) {
             foreach ($products as $p) {
-                $out[] = $p->data();
+                $row = $p->data();
+                $row->value = money_br(isset($row->value) ? (string) $row->value : null);
+                $out[] = $row;
             }
         }
         echo json_encode($out);

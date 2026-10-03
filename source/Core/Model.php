@@ -45,8 +45,14 @@ abstract class Model
     /** @var array $protected no update or create */
     protected $protected;
 
-    /** @var array $entity database table */
-    protected $required;
+    /**
+     * Colunas obrigatórias do cadastro.
+     * O nome não pode ser $required: a coluna clients_products.required
+     * teria o mesmo nome e o PDO gravaria o valor do banco nesta lista,
+     * em vez de deixar o campo disponível para a tela.
+     * @var array
+     */
+    protected $requiredFields;
 
     /**
      * Model constructor.
@@ -58,7 +64,7 @@ abstract class Model
     {
         $this->entity = $entity;
         $this->protected = array_merge($protected, ['created_at', "updated_at"]);
-        $this->required = $required;
+        $this->requiredFields = $required;
         $this->message = new Message();
     }
 
@@ -375,7 +381,7 @@ abstract class Model
     protected function required(): bool
     {
         $data = (array)$this->data();
-        foreach ($this->required as $field) {
+        foreach ($this->requiredFields as $field) {
             if (empty($data[$field])) {
                 return false;
             }

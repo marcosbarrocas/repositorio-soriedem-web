@@ -120,6 +120,9 @@
                         <a class="side-menu__item" href="<?= url('/admin/sellers/omie'); ?>"><i class="side-menu__icon ti-id-badge"></i><span class="side-menu__label">Vendedores</span></a>
                     </li>
                     <li>
+                        <a class="side-menu__item" href="<?= url('/admin/clients/omie'); ?>"><i class="side-menu__icon ti-briefcase"></i><span class="side-menu__label">Clientes</span></a>
+                    </li>
+                    <li>
                         <a class="side-menu__item" href="<?= url('/admin/products/home'); ?>"><i class="side-menu__icon ti-package"></i><span class="side-menu__label">Produtos</span></a>
                     </li>
                     <li>

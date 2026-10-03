@@ -177,5 +177,8 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Erro ao criar pedido.']);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Erro ao criar pedido: ' . $e->getMessage(),
+    ], JSON_UNESCAPED_UNICODE);
 }

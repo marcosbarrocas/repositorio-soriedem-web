@@ -72,7 +72,7 @@ $corporate = $client ? $client->corporate_name : "";
                                             <tr>
                                                 <th scope="row"><?= $product ? $product->code : ""; ?></th>
                                                 <td><?= $product ? $product->title : "Produto não encontrado"; ?></td>
-                                                <td>R$ <?= number_format((float) $clientProducts->price, 2, ",", "."); ?></td>
+                                                <td>R$ <?= money_br((string) $clientProducts->price); ?></td>
                                                 <td><?= !empty($clientProducts->required) ? "Sim" : "Não"; ?></td>
                                                 <td align="center">
                                                     <a href="<?= url('/admin/clients-products/client-products/' . $clientProducts->id); ?>" class="btn btn-info btn-sm" title="Alterar valor e obrigatoriedade"><i class="fa fa-pencil"></i></a>

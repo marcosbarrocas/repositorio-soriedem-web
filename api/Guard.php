@@ -7,11 +7,16 @@
  *
  * O app envia o token emitido no login em:  Authorization: Bearer <token>
  * (tambem aceita header X-Api-Token).
+ *
+ * Nao depende da coluna sellers.status (ela existe no banco local e pode
+ * nao existir em producao). Se o status vier no SELECT *, 0 ainda bloqueia.
  */
 
 /**
- * @param PDO $PDO
- * @return array dados do seller autenticado (sem senha)
+ * Resolve o vendedor autenticado pelo access token da sessao (ou api_token legado).
+ *
+ * @param PDO $PDO Conexao ja aberta por Connect.php
+ * @return array Dados do seller (id, nome, email, omie_codigo). Encerra com HTTP 401 se o token for invalido.
  */
 function require_seller(PDO $PDO): array
 {
@@ -22,22 +27,34 @@ function require_seller(PDO $PDO): array
         exit;
     }
 
-    // Sessao nova (access_token com validade). Junta com sellers para os dados.
-    $stmt = $PDO->prepare(
-        "SELECT s.id, s.first_name, s.last_name, s.email, s.omie_codigo, s.status
-         FROM seller_sessions ss
-         INNER JOIN sellers s ON s.id = ss.id_seller
-         WHERE ss.access_token = :t AND ss.access_expires > NOW()
-         LIMIT 1"
-    );
-    $stmt->execute([':t' => $token]);
-    $seller = $stmt->fetch(PDO::FETCH_ASSOC);
+    $seller = null;
+    try {
+        $stmt = $PDO->prepare(
+            "SELECT s.id, s.first_name, s.last_name, s.email, s.omie_codigo
+             FROM seller_sessions ss
+             INNER JOIN sellers s ON s.id = ss.id_seller
+             WHERE ss.access_token = :t AND ss.access_expires > NOW()
+             LIMIT 1"
+        );
+        if ($stmt) {
+            $stmt->execute([':t' => $token]);
+            $seller = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        }
 
-    // Fallback para o token legado (sellers.api_token) durante a transicao.
-    if (!$seller) {
-        $legacy = $PDO->prepare("SELECT id, first_name, last_name, email, omie_codigo, status FROM sellers WHERE api_token = :t LIMIT 1");
-        $legacy->execute([':t' => $token]);
-        $seller = $legacy->fetch(PDO::FETCH_ASSOC);
+        if (!$seller) {
+            $legacy = $PDO->prepare(
+                "SELECT id, first_name, last_name, email, omie_codigo
+                 FROM sellers WHERE api_token = :t LIMIT 1"
+            );
+            if ($legacy) {
+                $legacy->execute([':t' => $token]);
+                $seller = $legacy->fetch(PDO::FETCH_ASSOC) ?: null;
+            }
+        }
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Falha ao validar a sessao.']);
+        exit;
     }
 
     if (!$seller || (isset($seller['status']) && (int) $seller['status'] === 0)) {
@@ -51,7 +68,8 @@ function require_seller(PDO $PDO): array
 
 /**
  * Extrai o token do header Authorization: Bearer <token> ou X-Api-Token.
- * @return string|null
+ *
+ * @return string|null Token limpo, ou null se nenhum header de autenticacao veio na requisicao
  */
 function bearer_token(): ?string
 {
@@ -61,9 +79,11 @@ function bearer_token(): ?string
             $headers[strtolower($k)] = $v;
         }
     }
-    // fallback via $_SERVER (o servidor embutido nem sempre expoe getallheaders)
     if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
         $headers['authorization'] = $_SERVER['HTTP_AUTHORIZATION'];
+    }
+    if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $headers['authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
     }
     if (isset($_SERVER['HTTP_X_API_TOKEN'])) {
         $headers['x-api-token'] = $_SERVER['HTTP_X_API_TOKEN'];
